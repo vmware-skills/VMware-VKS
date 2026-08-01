@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.zw008/vmware-vks",
+  "name": "io.github.vmware-skills/vmware-vks",
   "title": "VMware VKS",
   "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
   "repository": {
     "url": "https://github.com/vmware-skills/VMware-VKS",
     "source": "github"
   },
-  "version": "1.8.8",
+  "version": "1.8.9",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "vmware-vks",
-      "version": "1.8.8",
+      "version": "1.8.9",
       "transport": {
         "type": "stdio"
       }

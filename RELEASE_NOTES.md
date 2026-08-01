@@ -1,3 +1,9 @@
+## v1.8.9 — moved to vmware-skills org + MCP Registry namespace io.github.vmware-skills/vmware-vks
+
+Repo transferred from github.com/zw008 to github.com/vmware-skills (redirects preserve old links).
+MCP Registry server renamed to `io.github.vmware-skills/*`; the old `io.github.zw008/*` entry is deprecated.
+All in-repo links updated. No functional code change on this line beyond the org move.
+
 ## v1.8.8 — CLI writes now route through policy + audit, exactly like the MCP tools
 
 Every state-changing CLI command is now wrapped by `@guarded`, the CLI counterpart

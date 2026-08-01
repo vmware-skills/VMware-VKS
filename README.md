@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.zw008/vmware-vks -->
+<!-- mcp-name: io.github.vmware-skills/vmware-vks -->
 # VMware VKS
 
 > **Author**: Wei Zhou, VMware by Broadcom — wei-wz.zhou@broadcom.com
