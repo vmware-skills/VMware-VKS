@@ -1199,7 +1199,7 @@ Security
 * stdio transport only — no network listener
 * delete_namespace rejects if TKC clusters exist inside
 
-Source: https://github.com/zw008/VMware-VKS
+Source: https://github.com/vmware-skills/VMware-VKS
 """
 from __future__ import annotations
 
@@ -1707,7 +1707,7 @@ Expected: PASS
   "title": "VMware VKS",
   "description": "MCP server for vSphere with Tanzu (VKS). Manage Supervisor Namespaces and TanzuKubernetesCluster lifecycle via AI model. Tools: check_vks_compatibility, get_supervisor_status, list_supervisor_storage_policies, list_namespaces, get_namespace, create_namespace, update_namespace, delete_namespace, list_vm_classes. Requires vSphere 8.x+.",
   "repository": {
-    "url": "https://github.com/zw008/VMware-VKS",
+    "url": "https://github.com/vmware-skills/VMware-VKS",
     "source": "github"
   },
   "version": "0.1.0",

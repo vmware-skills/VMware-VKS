@@ -4,7 +4,7 @@
   "title": "VMware VKS",
   "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
   "repository": {
-    "url": "https://github.com/zw008/VMware-VKS",
+    "url": "https://github.com/vmware-skills/VMware-VKS",
     "source": "github"
   },
   "version": "1.8.8",

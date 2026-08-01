@@ -4,7 +4,7 @@ Full setup, security details, and AI platform compatibility for `vmware-vks`.
 
 ## Installation
 
-All install methods fetch from the same source: [github.com/zw008/VMware-VKS](https://github.com/zw008/VMware-VKS) (MIT licensed). We recommend reviewing the source code before installing.
+All install methods fetch from the same source: [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS) (MIT licensed). We recommend reviewing the source code before installing.
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone https://github.com/zw008/VMware-VKS.git
+git clone https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -148,7 +148,7 @@ To run the agent read-only, give it a read-only vCenter/Supervisor service accou
 
 This skill follows a defense-in-depth approach with six security properties:
 
-1. **Source Code** -- MIT-licensed, fully auditable. No obfuscated logic. Source at [github.com/zw008/VMware-VKS](https://github.com/zw008/VMware-VKS). The `uv` installer fetches the `vmware-vks` package from PyPI, which is built from this GitHub repository.
+1. **Source Code** -- MIT-licensed, fully auditable. No obfuscated logic. Source at [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS). The `uv` installer fetches the `vmware-vks` package from PyPI, which is built from this GitHub repository.
 
 2. **Credentials** -- `config.yaml` contains vCenter hostnames and usernames only. Passwords are loaded exclusively from `~/.vmware-vks/.env` (read via `python-dotenv`). Passwords are never logged, never echoed to CLI output, and never included in audit log entries. **In-memory kubeconfig (v1.5.18+)**: Supervisor and TKC kubeconfigs — which embed the vCenter session bearer token — are built as a Python dict and handed to the kubernetes client via `load_kube_config_from_dict()`. The bearer token never touches disk during normal MCP/CLI flow, eliminating the previous temp-file TOCTOU window. The explicit `vmware-vks kubeconfig get -o <path>` CLI export still writes to the user-chosen path so `kubectl` can use it.
 

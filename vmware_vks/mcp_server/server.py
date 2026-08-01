@@ -18,7 +18,7 @@ Security
   via the @vmware_tool decorator) plus a local JSON-Lines mirror at
   ~/.vmware-vks/audit.log
 
-Source: https://github.com/zw008/VMware-VKS
+Source: https://github.com/vmware-skills/VMware-VKS
 """
 
 import logging
