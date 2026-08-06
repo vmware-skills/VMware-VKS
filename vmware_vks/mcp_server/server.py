@@ -855,6 +855,90 @@ def list_namespace_storage_usage(namespace: str, target: Optional[str] = None) -
 
 
 # ---------------------------------------------------------------------------
+# VM Service tools (vm-operator CRDs; served version discovered at runtime)
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low")
+def list_vm_snapshots(namespace: str, target: Optional[str] = None) -> dict:
+    """[READ] List VirtualMachineSnapshot objects in a vSphere Namespace.
+
+    VM Service snapshots (vmoperator.vmware.com CRD, new at v1alpha5) via the
+    Supervisor K8s API — the served CRD version is discovered at runtime, not
+    hardcoded. Returns the family list envelope: items of {name, namespace,
+    vm_name, created, ready} plus returned/total/truncated (walked to
+    completion, so truncated is always false) and served_version. If the
+    Supervisor is older than v1alpha5 the error names the required version. Run
+    list_namespaces first for the namespace; use list_vm_network_interfaces for
+    a VM's NICs.
+
+    Args:
+        namespace: vSphere Namespace to list snapshots in (via list_namespaces).
+        target: vCenter in config.yaml; omit for the default.
+    """
+    try:
+        si = _get_si(target)
+        from vmware_vks.ops import vmservice as _vmsvc
+        return _vmsvc.list_vm_snapshots(si, namespace)
+    except Exception as e:
+        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low")
+def list_vm_groups(namespace: str, target: Optional[str] = None) -> dict:
+    """[READ] List VirtualMachineGroup objects and their bootOrder in a Namespace.
+
+    VM Service groups (vmoperator.vmware.com CRD, v1alpha4+) via the Supervisor
+    K8s API — the served CRD version is discovered at runtime. Returns the
+    family list envelope: items of {name, namespace, boot_order, member_count}
+    plus returned/total/truncated (walked to completion) and served_version.
+    ``boot_order`` mirrors spec.bootOrder: an ordered list of {members:
+    [{kind, name}], power_on_delay?}. Older Supervisors without v1alpha4 return
+    a teaching error naming the required version.
+
+    Args:
+        namespace: vSphere Namespace to list VM groups in (via list_namespaces).
+        target: vCenter in config.yaml; omit for the default.
+    """
+    try:
+        si = _get_si(target)
+        from vmware_vks.ops import vmservice as _vmsvc
+        return _vmsvc.list_vm_groups(si, namespace)
+    except Exception as e:
+        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low")
+def list_vm_network_interfaces(
+    namespace: str, vm_name: str, target: Optional[str] = None
+) -> dict:
+    """[READ] List the network interfaces (multi-NIC) of one VirtualMachine.
+
+    Reads spec.network.interfaces[] off a single VM Service VirtualMachine
+    (vmoperator.vmware.com) via the Supervisor K8s API; the served CRD version
+    is discovered at runtime. Returns the family list envelope: items of {name,
+    network_name, network_kind, network_api_version} plus
+    returned/total/truncated and vm_name/served_version. A VM with no network
+    block returns an empty list, not an error. Run list_namespaces for the
+    namespace; the VM name comes from your own VM inventory in that namespace.
+
+    Args:
+        namespace: vSphere Namespace the VM lives in (via list_namespaces).
+        vm_name: Name of the VirtualMachine to read interfaces from.
+        target: vCenter in config.yaml; omit for the default.
+    """
+    try:
+        si = _get_si(target)
+        from vmware_vks.ops import vmservice as _vmsvc
+        return _vmsvc.list_vm_network_interfaces(si, namespace, vm_name)
+    except Exception as e:
+        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+
+
+# ---------------------------------------------------------------------------
 # Environment declaration
 # ---------------------------------------------------------------------------
 

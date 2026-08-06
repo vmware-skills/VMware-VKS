@@ -24,9 +24,11 @@ app.add_typer(namespace_app, name="namespace")
 
 tkc_app = typer.Typer(help="TanzuKubernetesCluster commands")
 kubeconfig_app = typer.Typer(help="Kubeconfig commands")
+vm_app = typer.Typer(help="VM Service (vm-operator) read commands")
 
 app.add_typer(tkc_app, name="tkc")
 app.add_typer(kubeconfig_app, name="kubeconfig")
+app.add_typer(vm_app, name="vm")
 
 
 @app.command("mcp")
@@ -672,6 +674,72 @@ def tkc_delete(
 
 
 # ---------------------------------------------------------------------------
+# VM Service (vm-operator) read commands
+# ---------------------------------------------------------------------------
+
+
+@vm_app.command("snapshots")
+@_cli_errors
+def vm_snapshots(
+    namespace: str = typer.Option(..., "-n", "--namespace"),
+    target: Optional[str] = typer.Option(None, "-t", "--target"),
+):
+    """List VirtualMachineSnapshot objects in a Namespace."""
+    from vmware_vks.ops.vmservice import list_vm_snapshots
+
+    si = _get_si(target)
+    result = list_vm_snapshots(si, namespace)
+    table = Table("Name", "VM", "Ready", "Created")
+    for s in result["items"]:
+        table.add_row(
+            s["name"], s["vm_name"], str(s["ready"]), str(s["created"] or "")
+        )
+    console.print(f"Total: {result['total']} (served {result['served_version']})")
+    console.print(table)
+
+
+@vm_app.command("groups")
+@_cli_errors
+def vm_groups(
+    namespace: str = typer.Option(..., "-n", "--namespace"),
+    target: Optional[str] = typer.Option(None, "-t", "--target"),
+):
+    """List VirtualMachineGroup objects and their bootOrder in a Namespace."""
+    from vmware_vks.ops.vmservice import list_vm_groups
+
+    si = _get_si(target)
+    result = list_vm_groups(si, namespace)
+    table = Table("Name", "Members", "Boot Order")
+    for g in result["items"]:
+        stages = [
+            "[" + ", ".join(m["name"] for m in stage["members"]) + "]"
+            for stage in g["boot_order"]
+        ]
+        table.add_row(g["name"], str(g["member_count"]), " -> ".join(stages))
+    console.print(f"Total: {result['total']} (served {result['served_version']})")
+    console.print(table)
+
+
+@vm_app.command("nics")
+@_cli_errors
+def vm_nics(
+    vm_name: str = typer.Argument(...),
+    namespace: str = typer.Option(..., "-n", "--namespace"),
+    target: Optional[str] = typer.Option(None, "-t", "--target"),
+):
+    """List the network interfaces (multi-NIC) of one VirtualMachine."""
+    from vmware_vks.ops.vmservice import list_vm_network_interfaces
+
+    si = _get_si(target)
+    result = list_vm_network_interfaces(si, namespace, vm_name)
+    table = Table("Interface", "Network", "Kind")
+    for nic in result["items"]:
+        table.add_row(nic["name"], nic["network_name"], nic["network_kind"])
+    console.print(f"VM: {result['vm_name']}  Total NICs: {result['total']}")
+    console.print(table)
+
+
+# ---------------------------------------------------------------------------
 # Kubeconfig commands
 # ---------------------------------------------------------------------------
 
@@ -699,7 +767,6 @@ def kubeconfig_get(
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
     """Get TKC cluster kubeconfig."""
-    import json
 
     from vmware_vks.ops.kubeconfig import write_kubeconfig
 

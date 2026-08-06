@@ -21,7 +21,7 @@ compatibility: >
 
 > **Disclaimer**: This is a community-maintained open-source project and is **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and "vSphere" are trademarks of Broadcom. Source code is publicly auditable at [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS) under the MIT license.
 
-AI-powered VMware vSphere Kubernetes Service (VKS) management — 20 MCP tools.
+AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 
 > Requires vSphere 8.x+ with Workload Management enabled.
 > **Companion skills**: [vmware-aiops](https://github.com/vmware-skills/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/vmware-skills/VMware-Monitor) (monitoring), [vmware-storage](https://github.com/vmware-skills/VMware-Storage) (storage), [vmware-nsx](https://github.com/vmware-skills/VMware-NSX) (NSX networking), [vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security) (DFW/firewall), [vmware-aria](https://github.com/vmware-skills/VMware-Aria) (metrics/alerts/capacity), [vmware-avi](https://github.com/vmware-skills/VMware-AVI) (AVI/ALB/AKO), [vmware-harden](https://github.com/vmware-skills/VMware-Harden) (compliance baselines).
@@ -34,6 +34,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 20 MCP tools.
 | **Supervisor** | Compatibility check, status, storage policies | 3 |
 | **Namespace** | List, get, create with quotas, update, delete with TKC guard, VM classes | 6 |
 | **TKC Clusters** | List, get, versions, create, scale, upgrade, delete with workload guard | 7 |
+| **VM Service** | VM snapshots, VM groups + bootOrder, VM multi-NIC readout (vm-operator CRDs, read-only) | 3 |
 | **Access** | Supervisor kubeconfig, TKC kubeconfig, Harbor registry, storage usage | 4 |
 
 ## Quick Install
@@ -143,7 +144,7 @@ Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (20 — 13 read, 7 write)
+## MCP Tools (23 — 16 read, 7 write)
 
 All accept optional `target` parameter to specify a named vCenter.
 
@@ -171,6 +172,9 @@ to be guessed from the row count. These three read their collection in one un-pa
 | | `scale_tkc_cluster` | Write |
 | | `upgrade_tkc_cluster` | Write |
 | | `delete_tkc_cluster` | Write |
+| **VM Service** | `list_vm_snapshots` | Read |
+| | `list_vm_groups` | Read |
+| | `list_vm_network_interfaces` | Read |
 | **Access** | `get_supervisor_kubeconfig` | Read |
 | | `get_tkc_kubeconfig` | Read |
 | | `get_harbor_info` | Read |

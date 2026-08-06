@@ -14,7 +14,7 @@ vmware-monitor and vmware-aria against a production vSphere estate with Llama
 cross-skill rules are identical across this family; the parts below marked
 vmware-vks are specific to this skill.
 
-vmware-vks exposes 20 MCP tools. Two things make it distinctive for a small
+vmware-vks exposes 23 MCP tools. Two things make it distinctive for a small
 model: deleting a namespace or a Tanzu Kubernetes cluster destroys running
 workloads, and two of its tools hand back live credentials.
 

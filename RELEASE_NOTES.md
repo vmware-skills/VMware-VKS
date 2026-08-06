@@ -1,3 +1,78 @@
+## v1.8.10 — VM Service reads (VCF 9.1 vm-operator CRDs): snapshots, VM groups, multi-NIC readout
+
+### Added: three read-only VM Service tools (20 → 23 MCP tools)
+
+Supervisor **VM Service** objects are now readable through the same Layer-2 path
+as the TKC tools — the Supervisor Kubernetes API via the kubernetes client
+(`CustomObjectsApi`), reading `vmoperator.vmware.com` CRDs. **Not** vCenter REST,
+**not** pyVmomi.
+
+| tool | reads | envelope adds |
+|---|---|---|
+| `list_vm_snapshots` | `VirtualMachineSnapshot` in a Namespace | `served_version` |
+| `list_vm_groups` | `VirtualMachineGroup` + `spec.bootOrder` | `served_version` |
+| `list_vm_network_interfaces` | one VM's `spec.network.interfaces[]` (multi-NIC) | `vm_name`, `served_version` |
+
+All three are `[READ]`, `risk_level="low"`, return the family list envelope, and
+have matching CLI subcommands (`vmware-vks vm snapshots|groups|nics`). SKILL.md,
+the tools table, and the header count are updated to **23 MCP tools (16 read, 7
+write)** — verified against `mcp.list_tools()` (踩坑 #34: declared count must
+equal the exposed count).
+
+The served CRD version is **discovered at runtime** through the K8s discovery API
+(`ApisApi.get_api_versions()`), newest served among v1alpha4/5/6 preferred —
+never hardcoded. When a kind's CRD is not served (e.g. `VirtualMachineSnapshot`
+needs vmoperator v1alpha5+, `VirtualMachineGroup` needs v1alpha4+), the tool
+returns a teaching error that names the required version instead of a traceback.
+
+### Fixed — Fable5-review hardening applied during this build
+
+- **Anti-phantom-endpoint guard (踩坑 #36).** The group, plurals, kinds and
+  minimum versions are pinned in `tests/eval/spec/vmservice_endpoints.py`; a
+  regression test uses AST + literal scanning to assert the ops module can never
+  reach a `group=`/`plural=` outside that pinned set — so the CRD surface cannot
+  silently drift into an invented path (the failure mode a prior skill shipped,
+  where half the hallucinated REST paths 404'd).
+- **Empty is an explicit answer, not "no problem" (踩坑 形态 #1).** Every
+  collection is walked to exhaustion via the `continue` token, so `total` is a
+  real count and `truncated` is always `False` rather than inferred from a page.
+  A missing field degrades to `""` / `None` / `[]` (never a crash), and a VM
+  with no `spec.network` returns an empty NIC list instead of an error.
+- **Non-dict members/stages/NICs are skipped** rather than trusted, and each
+  `api_client` is closed in a `finally`.
+- Removed a dead `import json` in `kubeconfig_get` left over from an earlier edit
+  (surgical cleanup, no behavior change).
+
+### Beta / real-hardware caveats (read before trusting field-level output)
+
+This is a **beta** surface. The CRD **paths** — group `vmoperator.vmware.com`,
+plurals `virtualmachines` / `virtualmachinesnapshots` / `virtualmachinegroups`,
+and the per-kind minimum versions — are pinned to the **VCF 9.1 verified-endpoints
+spec (section D)** and cross-checked by regression tests, but they have **not been
+exercised against a live VCF 9.1 Supervisor**. Verification is at the CRD-surface
+/ path level only.
+
+- **Response FIELD names are not confirmed on a live 9.1 appliance.** The fields
+  read — `spec.vmName`, `spec.network.interfaces[].network.{name,kind,apiVersion}`,
+  `spec.bootOrder[].members[].{kind,name}` / `powerOnDelay`,
+  `status.conditions[].Ready` — are how vm-operator has shaped these objects, read
+  defensively so an unexpected/renamed field degrades to empty rather than
+  crashing. Treat field-level output as provisional until real-hardware
+  verification (same posture as the still-pending `/wcp/login` real-machine check).
+- **INFERRED bits, called out explicitly:** the snapshot `vmName` vs
+  `virtualMachineName` spelling is a guessed-either-way guard (vm-operator has
+  used both across versions); the per-kind minimum-version gate (Snapshot
+  v1alpha5+, Group v1alpha4+) is a **spec claim**, not a live check — the actual
+  served version is runtime-discovered so the tool adapts, but the minimum gate
+  itself is inferred from the spec.
+- **No PromQL / PAIS / metrics-collector paths are involved here.** Those
+  INFERRED / collector-pending surfaces live in other skills' specs; this change
+  touches only the vmoperator CRD read path, and nothing in it is
+  collector-pending.
+
+No new dependencies; read-only, so no policy/audit posture change beyond the
+existing `@vmware_tool` wrapping.
+
 ## v1.8.9 — moved to vmware-skills org + MCP Registry namespace io.github.vmware-skills/vmware-vks
 
 Repo transferred from github.com/zw008 to github.com/vmware-skills (redirects preserve old links).
