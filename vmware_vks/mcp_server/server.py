@@ -39,6 +39,7 @@ from vmware_vks.config import CONFIG_FILE, ConfigError, load_config
 from vmware_vks.connection import ConnectionManager
 from vmware_vks.errors import VksError
 from vmware_vks.notify.audit import AuditLogger
+from vmware_vks import __version__
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vmware-vks.mcp")
 
@@ -113,6 +114,11 @@ def _safe_error(exc: Exception, tool: str) -> str:
 
 
 mcp = FastMCP("VMware VKS")
+
+# FastMCP takes no version argument and leaves the lowlevel server's at
+# None, which makes `initialize` answer with the MCP SDK's version rather
+# than ours. Set it so a client can tell which release it is talking to.
+mcp._mcp_server.version = __version__
 _audit = AuditLogger()
 
 _conn_mgr: Optional[ConnectionManager] = None
