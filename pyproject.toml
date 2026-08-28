@@ -34,6 +34,13 @@ markers = [
     "capability: Capability evals — scored trends, not pass/fail gates. Excluded from the default run (they measure quality, so <100% is expected and must not read as a broken build). Run them with: pytest -m capability",
 ]
 addopts = "-m 'not capability'"
+
+[project.urls]
+Homepage = "https://github.com/vmware-skills/VMware-VKS"
+Repository = "https://github.com/vmware-skills/VMware-VKS"
+Issues = "https://github.com/vmware-skills/VMware-VKS/issues"
+Changelog = "https://github.com/vmware-skills/VMware-VKS/blob/main/RELEASE_NOTES.md"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0,<10.0",

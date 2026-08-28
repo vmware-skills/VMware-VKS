@@ -8,10 +8,10 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add zw008/VMware-VKS
+npx skills add vmware-skills/VMware-VKS
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install vmware-vks
+clawhub install @zw008/vmware-vks
 
 # Via PyPI (recommended for version pinning)
 uv tool install vmware-vks==1.2.3
