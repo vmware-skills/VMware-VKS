@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-vks==1.8.10",
+        "vmware-vks-mcp"
+      ]
+    }
+  }
+}

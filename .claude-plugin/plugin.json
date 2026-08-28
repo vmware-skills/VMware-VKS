@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "vmware-vks",
+  "displayName": "VMware VKS",
+  "version": "1.8.10",
+  "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
+  "author": {
+    "name": "Wei Zhou",
+    "email": "zhouwei008@gmail.com",
+    "url": "https://github.com/vmware-skills"
+  },
+  "homepage": "https://github.com/vmware-skills/VMware-VKS",
+  "repository": "https://github.com/vmware-skills/VMware-VKS",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "vks",
+    "vmware",
+    "vsphere"
+  ]
+}
