@@ -1,3 +1,22 @@
+## v1.8.11 — two wrong numbers: the server's own version, and the advertised tool count
+
+Both defects were invisible to the test suites and both were user-facing.
+
+- **The MCP server reported the SDK's version as its own.** `FastMCP` accepts no
+  `version` argument and leaves the lowlevel server's at `None`; with it `None`
+  the SDK answers `initialize` with its OWN version. Every skill in the family
+  therefore told its client it was mcp 1.29.1 — a number that exists for no
+  package here, and one that would change with an SDK bump and no code change of
+  ours. Verified end to end rather than by reading: unset the field and a probe
+  server reports the installed SDK's version; set it and it reports ours.
+
+Also new: this repo is installable as a Claude Code plugin
+(`/plugin install vmware-vks@vmware-skills`). The skill and its MCP server arrive in
+one step; nothing is duplicated, the manifest points at the existing `skills/`
+tree. family_smoke gained three gates — the server's reported version, the plugin
+manifest's agreement with pyproject, and the advertised tool count against the
+live registration.
+
 ## v1.8.10 — VM Service reads (VCF 9.1 vm-operator CRDs): snapshots, VM groups, multi-NIC readout
 
 ### Added: three read-only VM Service tools (20 → 23 MCP tools)
