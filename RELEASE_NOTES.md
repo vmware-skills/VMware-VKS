@@ -1,3 +1,17 @@
+## v1.8.12 — a Workload Management failure was reported as a connectivity failure
+
+`vmware-vks check` against a real vCenter printed the same row twice: passing
+with the vCenter version, then failing with a 401 from the namespace-management
+endpoint. One `try` wrapped connect, version and the WCP query, and the single
+`except` labelled every failure "vCenter reachable" — while the row above proved
+vCenter was reachable. What failed was WCP.
+
+A diagnostic that names the wrong layer sends the operator to check networking
+and credentials that are already fine. Failures are now attributed to the stage
+that raised them.
+
+Found running against a live vCenter 8.0.3 with no Supervisor enabled.
+
 ## v1.8.11 — two wrong numbers: the server's own version, and the advertised tool count
 
 Both defects were invisible to the test suites and both were user-facing.
