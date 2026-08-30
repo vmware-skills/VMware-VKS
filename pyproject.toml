@@ -18,7 +18,7 @@ dependencies = [
     "rich>=13.0,<15.0",
     "python-dotenv>=1.0,<2.0",
     "mcp[cli]>=1.10,<2.0",
-    "vmware-policy>=1.10.0,<2.0",
+    "vmware-policy>=1.11.0,<2.0",
 ]
 
 [project.scripts]
