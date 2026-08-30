@@ -30,6 +30,32 @@ def _mock_si():
     return si
 
 
+def _mock_si_with_rest_session():
+    """A connection whose REST session id is already cached.
+
+    These tests are about how an HTTP status is translated, not about how the
+    session is obtained. Since ``_rest_request`` now fetches a session id from
+    ``POST /api/session`` (the SOAP key it used to send is not a REST token —
+    see ``test_rest_session_token.py``), a bare mock would spend the patched
+    ``urlopen`` on the login call and never reach the status under test. Seeding
+    the cache keeps each test pointed at its own subject.
+    """
+    from vmware_vks.config import TargetConfig
+    from vmware_vks.connection import _SI_TARGET, _SI_VERIFY_SSL
+    from vmware_vks.rest_session import _token_cache
+
+    si = _mock_si()
+    target = TargetConfig(
+        name="fixpack",
+        host="vcenter.example.com",
+        config_username="svc@vsphere.local",
+    )
+    _SI_TARGET[id(si)] = target
+    _SI_VERIFY_SSL[id(si)] = True
+    _token_cache[("vcenter.example.com", "svc@vsphere.local")] = "rest-session-id"
+    return si
+
+
 # ---------------------------------------------------------------------------
 # #2 — scale preserves all node pools and their class fields
 # ---------------------------------------------------------------------------
@@ -140,7 +166,7 @@ def test_rest_404_raises_teaching_error():
     from vmware_vks.ops.supervisor import _rest_get
     with patch("urllib.request.urlopen", side_effect=_http_error(404)):
         with pytest.raises(VksApiError) as exc_info:
-            _rest_get(_mock_si(), "/vcenter/namespaces/instances/missing")
+            _rest_get(_mock_si_with_rest_session(), "/vcenter/namespaces/instances/missing")
     assert exc_info.value.status_code == 404
     assert "vmware-vks namespace list" in str(exc_info.value)
 
@@ -149,7 +175,7 @@ def test_rest_403_raises_permission_hint():
     from vmware_vks.ops.supervisor import _rest_get
     with patch("urllib.request.urlopen", side_effect=_http_error(403)):
         with pytest.raises(VksApiError, match="Workload Management"):
-            _rest_get(_mock_si(), "/vcenter/namespaces/instances")
+            _rest_get(_mock_si_with_rest_session(), "/vcenter/namespaces/instances")
 
 
 def test_rest_503_get_retries_exactly_once():
@@ -159,7 +185,7 @@ def test_rest_503_get_retries_exactly_once():
         patch("vmware_vks.ops.supervisor.time.sleep"),
     ):
         with pytest.raises(VksApiError, match="not ready"):
-            _rest_get(_mock_si(), "/vcenter/namespaces/instances")
+            _rest_get(_mock_si_with_rest_session(), "/vcenter/namespaces/instances")
     assert mock_open.call_count == 2  # initial + exactly one retry
 
 
@@ -170,7 +196,7 @@ def test_rest_503_post_is_not_retried():
         patch("vmware_vks.ops.supervisor.time.sleep"),
     ):
         with pytest.raises(VksApiError):
-            _rest_post(_mock_si(), "/vcenter/namespaces/instances", {"x": 1})
+            _rest_post(_mock_si_with_rest_session(), "/vcenter/namespaces/instances", {"x": 1})
     assert mock_open.call_count == 1  # writes are never blind-retried
 
 
@@ -181,7 +207,7 @@ def test_rest_urlerror_translated_not_raw():
         side_effect=urllib.error.URLError("connection refused"),
     ):
         with pytest.raises(VksApiError, match="vmware-vks check"):
-            _rest_post(_mock_si(), "/vcenter/namespaces/instances", {"x": 1})
+            _rest_post(_mock_si_with_rest_session(), "/vcenter/namespaces/instances", {"x": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -436,9 +462,32 @@ def test_skill_md_tool_counts_match_list_tools():
 # #10 — dead duplicate _vcenter_host removed from k8s_connection
 # ---------------------------------------------------------------------------
 
-def test_k8s_connection_has_no_duplicate_vcenter_host():
-    import vmware_vks.k8s_connection as k8s_conn
+def test_only_one_module_defines_the_vcenter_host_helper():
+    """One definition, wherever it lives.
 
-    assert not hasattr(k8s_conn, "_vcenter_host")
-    # the live copy stays in ops/supervisor
-    from vmware_vks.ops.supervisor import _vcenter_host  # noqa: F401
+    The point of #10 was that two copies drift. The live copy has since moved
+    from ``ops/supervisor`` to ``rest_session``, because the REST *session* and
+    the REST *request* must address the same host or a mismatch shows up as a
+    401 that looks like a token problem — so this pins the invariant (exactly
+    one definition in the package) rather than the address it had in 2026-06.
+    """
+    import ast
+    import inspect
+    from pathlib import Path
+
+    import vmware_vks
+
+    root = Path(inspect.getfile(vmware_vks)).parent
+    definers = []
+    for path in sorted(root.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name in (
+                "vcenter_host",
+                "_vcenter_host",
+            ):
+                definers.append(f"{path.name}:{node.name}")
+
+    assert definers == ["rest_session.py:vcenter_host"], (
+        f"expected exactly one vCenter-host helper, found {definers}"
+    )

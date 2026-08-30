@@ -1,6 +1,8 @@
 """Supervisor layer operations (read-only).
 
-Uses vCenter REST API via urllib (same session cookie as pyVmomi).
+Uses the vSphere Automation REST API (``/api``) via urllib, authenticated with
+a session id from :mod:`vmware_vks.rest_session` — **not** the pyVmomi SOAP
+session key, which ``/api`` does not recognise (see that module).
 All functions take (si: ServiceInstance) as first argument.
 """
 from __future__ import annotations
@@ -26,6 +28,11 @@ from vmware_vks.errors import (
     connection_failure_message,
     rest_hint_for_status,
 )
+from vmware_vks.rest_session import (
+    get_rest_session_id,
+    invalidate_rest_session_for_si,
+    vcenter_host,
+)
 
 _log = logging.getLogger("vmware-vks.ops.supervisor")
 
@@ -35,10 +42,6 @@ _MIN_VERSION = (8, 0, 0)
 # the vCenter REST endpoint is unreachable or slow. Override with the
 # ``VMWARE_VKS_REST_TIMEOUT`` env var.
 _REST_TIMEOUT = 30
-
-
-def _vcenter_host(si: ServiceInstance) -> str:
-    return si._stub.host.split(":")[0]
 
 
 def _target_name(si: ServiceInstance) -> str:
@@ -73,32 +76,44 @@ def _rest_request(
     path: str,
     body: dict | None = None,
 ) -> Any:
-    """Authenticated REST request using the active pyVmomi session cookie.
+    """Authenticated REST request against the vSphere Automation API.
 
     Handles GET/POST/PATCH/PUT/DELETE with uniform SSL verification and
     timeout behaviour. Returns parsed JSON on success; returns ``None`` when
     the response body is empty (e.g. DELETE).
 
+    Authentication is a session id from ``POST /api/session``, fetched inside
+    the loop so a re-login takes effect on the retry. It used to be
+    ``si.content.sessionManager.currentSession.key`` — the SOAP session's key,
+    which ``/api`` has never issued and always rejects (see
+    :mod:`vmware_vks.rest_session`).
+
     Errors are centrally translated into VksApiError with a teaching hint
     (踩坑 #37 — no raw raise_for_status-style tracebacks reach the user).
-    Transient gateway errors (502/503/504) are retried once for GETs only.
+
+    Two retries, kept apart because they answer different questions:
+
+    * **401** — the session id was refused. Drop it, log in again, replay the
+      request **once**. Safe for a write too: a request that was rejected at
+      the session check never reached the resource.
+    * **502/503/504** — transient gateway, GETs only, because a write that
+      timed out may well have landed.
     """
-    host = _vcenter_host(si)
-    session_id = si.content.sessionManager.currentSession.key
+    host = vcenter_host(si)
     url = f"https://{host}/api{path}"
     ctx = _build_ssl_context(si)
 
-    headers = {"vmware-api-session-id": session_id}
-    data = None
-    if body is not None:
-        headers["Content-Type"] = "application/json"
-        data = json.dumps(body).encode()
+    data = json.dumps(body).encode() if body is not None else None
+    transient_attempts = 2 if method == "GET" else 1
+    transient_used = 0
+    auth_retried = False
 
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    while True:
+        headers = {"vmware-api-session-id": get_rest_session_id(si)}
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
 
-    attempts = 2 if method == "GET" else 1
-    last_error: VksApiError | None = None
-    for attempt in range(attempts):
         try:
             with urllib.request.urlopen(req, context=ctx, timeout=_REST_TIMEOUT) as resp:  # nosec B310
                 raw = resp.read()
@@ -108,30 +123,32 @@ def _rest_request(
             # the way to an agent, so whatever comes last is what truncates —
             # and the response body is the expendable half.
             detail = sanitize(e.read().decode(errors="replace"), 300)
-            last_error = VksApiError(
+            error = VksApiError(
                 f"REST {method} {path} failed ({e.code}). "
                 f"{rest_hint_for_status(e.code)} Detail: {detail}",
                 status_code=e.code,
             )
-            last_error.__cause__ = e
-            # Retry once for transient gateway errors on read-only requests.
-            if e.code in TRANSIENT_STATUS_CODES and attempt + 1 < attempts:
+            error.__cause__ = e
+            if e.code == 401 and not auth_retried:
+                auth_retried = True
+                invalidate_rest_session_for_si(si)
+                continue
+            if e.code in TRANSIENT_STATUS_CODES and transient_used + 1 < transient_attempts:
+                transient_used += 1
                 time.sleep(2)
                 continue
-            raise last_error
+            raise error
         except (urllib.error.URLError, socket.timeout, TimeoutError, OSError) as e:
             # Authored message only: the raw text of a TLS failure quotes the
             # certificate subject and a DNS failure quotes the host, and this
             # error type passes through _safe_error verbatim.
-            last_error = VksApiError(
-                connection_failure_message(e, _target_name(si))
-            )
-            last_error.__cause__ = e
-            if attempt + 1 < attempts:
+            error = VksApiError(connection_failure_message(e, _target_name(si)))
+            error.__cause__ = e
+            if transient_used + 1 < transient_attempts:
+                transient_used += 1
                 time.sleep(2)
                 continue
-            raise last_error
-    raise last_error  # pragma: no cover — loop always returns or raises
+            raise error
 
 
 def _rest_get(si: ServiceInstance, path: str) -> Any:

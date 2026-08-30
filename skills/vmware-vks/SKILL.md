@@ -238,9 +238,13 @@ List policies first: `vmware-vks supervisor storage-policies`, then pass the **P
 
 Check Supervisor events in vCenter. Common causes: insufficient resources on ESXi hosts, network issues with NSX-T, or storage policy not available on target datastore.
 
+### Every REST tool returns 401
+
+vCenter keeps two independent session stores, and this skill uses both. Namespace, storage-policy and Supervisor-status tools call the vSphere Automation REST API under `/api`, which authenticates with a session id from `POST https://<vcenter>/api/session` (HTTP Basic on that one call, then the id in a `vmware-api-session-id` header). The pyVmomi SOAP session under `/sdk` is a different store and its key is rejected there — sending it produced a 401 on every REST tool. A 401 is refreshed automatically once; if it persists, check whether a proxy between you and vCenter strips the `vmware-api-session-id` header. A **403**, not a 401, is what an account short of Workload Management permissions gets.
+
 ### Validating Supervisor auth (POST /wcp/login)
 
-Supervisor/TKC Kubernetes auth uses a JWT obtained from `POST https://<vcenter>/wcp/login` (HTTP Basic → JSON `session_id` bearer token), not the pyVmomi SOAP session key. To validate this end-to-end against your real Supervisor, run:
+Supervisor/TKC Kubernetes auth uses a JWT obtained from `POST https://<vcenter>/wcp/login` (HTTP Basic → JSON `session_id` bearer token), not the pyVmomi SOAP session key, and not the `/api/session` id above either — three separate credentials. To validate this end-to-end against your real Supervisor, run:
 
 ```bash
 vmware-vks preflight-auth [--target <name>]

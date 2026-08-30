@@ -163,13 +163,16 @@ AI Agent (Claude Code / Goose / Cursor)
   ↓
 vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
   │
-  ├─ Layer 1: pyVmomi → vCenter REST API
+  ├─ Layer 1: pyVmomi (/sdk) + vSphere Automation REST (/api)
   │   Supervisor status, storage policies, Namespace CRUD, VM classes, Harbor
+  │   Two session stores: the SOAP session from SmartConnect, and a separate
+  │     REST session id from POST /api/session (vmware-api-session-id header)
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
       TKC CR apply / get / delete  (cluster.x-k8s.io API version auto-detected:
         prefers v1 when Supervisor serves it, falls back to v1beta1 for vSphere 8.0)
-      Kubeconfig built in-memory from Layer 1 session token (no temp file on disk)
+      Kubeconfig built in-memory from the POST /wcp/login bearer token
+        (a third credential, and no temp file on disk)
   ↓
 vCenter Server 8.x+ (Workload Management enabled)
   ↓
@@ -278,6 +281,15 @@ vmware-vks-mcp
 ### "VKS not compatible" error
 
 Workload Management must be enabled in vCenter. Check: vCenter UI -> Workload Management. Requires vSphere 8.x+ with Enterprise Plus or VCF license.
+
+### Every REST tool returns 401
+
+The namespace, storage-policy and Supervisor-status tools authenticate against
+the vSphere Automation REST API with a session id from `POST /api/session` —
+**not** the pyVmomi SOAP session key, which that API never issued and always
+rejects. A 401 is refreshed automatically once; if it persists, check whether a
+proxy between you and vCenter strips the `vmware-api-session-id` header. An
+account short of Workload Management permissions gets a **403**, not a 401.
 
 ### Namespace creation fails with "storage policy not found"
 

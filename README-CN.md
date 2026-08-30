@@ -161,13 +161,16 @@ AI Agent（Claude Code / Goose / Cursor）
   ↓
 vmware-vks CLI  ─── 或 ───  vmware-vks MCP Server（stdio）
   │
-  ├─ Layer 1: pyVmomi → vCenter REST API
+  ├─ Layer 1: pyVmomi（/sdk）+ vSphere Automation REST（/api）
   │   Supervisor 状态、存储策略、命名空间 CRUD、VM 类、Harbor
+  │   两套独立会话：SmartConnect 建立的 SOAP 会话，以及 POST /api/session
+  │     单独签发的 REST 会话 ID（放在 vmware-api-session-id 头里）
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API 端点
       TKC CR apply / get / delete（cluster.x-k8s.io API 版本运行时自动探测：
         Supervisor 支持 v1 时优先选 v1，否则回退 v1beta1（vSphere 8.0））
-      Kubeconfig 基于 Layer 1 会话令牌在内存中构建（不落盘）
+      Kubeconfig 基于 POST /wcp/login 返回的 bearer token 在内存中构建
+        （第三种凭据，同样不落盘）
   ↓
 vCenter Server 8.x+（Workload Management 已启用）
   ↓
@@ -268,6 +271,14 @@ vmware-vks-mcp
 ### "VKS not compatible" 错误
 
 必须在 vCenter 中启用 Workload Management。检查：vCenter UI -> Workload Management。需要 vSphere 8.x+ 且持有 Enterprise Plus 或 VCF 许可证。
+
+### 所有 REST 工具都返回 401
+
+命名空间、存储策略、Supervisor 状态这些工具走的是 vSphere Automation REST API，
+它认的是 `POST /api/session` 签发的会话 ID，**不是** pyVmomi 的 SOAP 会话 key ——
+后者不是该 API 签发的，所以一律拒绝。遇到 401 会自动重新登录一次；若仍然 401，
+检查中间的代理/网关是否把 `vmware-api-session-id` 头去掉了。账号缺少 Workload
+Management 权限时返回的是 **403**，不是 401。
 
 ### 创建命名空间失败，提示 "storage policy not found"
 

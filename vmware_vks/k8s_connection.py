@@ -15,7 +15,7 @@ from vmware_vks.errors import VksApiError, VksError
 
 _log = logging.getLogger("vmware-vks.k8s_connection")
 
-# NOTE: the vCenter-host helper lives in ops/supervisor._vcenter_host — the
+# NOTE: the vCenter-host helper lives in rest_session.vcenter_host — the
 # duplicate that used to live here was dead code and has been removed.
 
 # Per-host cache of the resolved Supervisor API endpoint. Each TKC op builds

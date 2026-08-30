@@ -88,13 +88,33 @@ def connection_failure_message(exc: BaseException, target: str = "") -> str:
 
 
 def rest_hint_for_status(status_code: Optional[int]) -> str:
-    """Teaching hint for a vCenter REST (namespace-management) status code."""
+    """Teaching hint for a vCenter REST (namespace-management) status code.
+
+    401 and 403 used to share this branch and both said "Permission denied —
+    verify the account has Workload Management permissions". On the VCF 9.1
+    hardware pass every REST call was 401 (the SOAP session key was being sent
+    as a REST session id), and that sentence sent the operator to re-check a
+    password and a role that were both already correct.
+
+    They are different answers to different questions. A 401 reaching this
+    function has already survived one silent re-login, so the account's
+    credentials are known good and the *session* is the thing being refused.
+    A 403 means the account authenticated and lacks the privilege — that one
+    really is Workload Management permissions, and still says so.
+    """
     if status_code == 404:
         return (
             "Resource not found — run 'vmware-vks namespace list' to find "
             "the exact name."
         )
-    if status_code in (401, 403):
+    if status_code == 401:
+        return (
+            "The vCenter REST session was refused even after re-authenticating, "
+            "so this is not a password or a role — run 'vmware-vks check', and "
+            "confirm nothing between here and vCenter (a proxy or gateway) is "
+            "stripping the vmware-api-session-id header."
+        )
+    if status_code == 403:
         return (
             "Permission denied — verify the account has Workload Management "
             "permissions on this vCenter."
@@ -127,11 +147,23 @@ def translate_k8s_api_exception(
             f"{kind} '{resource}' not found in namespace '{namespace}' — "
             "run list_tkc_clusters to see available clusters."
         )
-    elif status in (401, 403):
+    elif status == 401:
+        # The bearer token from POST /wcp/login was refused, so this *is* about
+        # the SSO credentials it was minted from. Kept apart from 403 for the
+        # same reason as in rest_hint_for_status: 403 is the account being
+        # short a privilege, and telling someone to re-check a working password
+        # is a dead end.
+        msg = (
+            f"Supervisor K8s API rejected the bearer token ({status}) for {kind} "
+            f"'{resource}' in namespace '{namespace}' — check vCenter SSO "
+            "credentials; run 'vmware-vks preflight-auth' to retest the login."
+        )
+    elif status == 403:
         msg = (
             f"Supervisor K8s API denied access ({status}) for {kind} "
-            f"'{resource}' in namespace '{namespace}' — check vCenter SSO "
-            "credentials; the account needs Workload Management permissions."
+            f"'{resource}' in namespace '{namespace}' — the account "
+            "authenticated but lacks the privilege; it needs Workload "
+            "Management permissions and RBAC on that namespace."
         )
     elif status in TRANSIENT_STATUS_CODES:
         msg = (
