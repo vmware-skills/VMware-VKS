@@ -88,8 +88,17 @@ def run_doctor(config_path: Path | None = None) -> bool:
                 )
 
     # 4. vCenter reachable + version + WCP
+    #
+    # One try wrapped all three, and the single except labelled every failure
+    # "vCenter reachable". On a real vCenter that printed the row twice — passing
+    # with v8.0.3, then failing with a 401 from the Workload Management endpoint.
+    # vCenter was reachable; the row above said so. A diagnostic that names the
+    # wrong layer sends the operator to check networking and credentials that are
+    # already fine. `stage` carries which check was in flight so the failure is
+    # attributed to it.
     if config:
         for t in config.targets:
+            stage = f"vCenter reachable ({t.name})"
             try:
                 from vmware_vks.connection import ConnectionManager
 
@@ -98,6 +107,7 @@ def run_doctor(config_path: Path | None = None) -> bool:
                 version = si.content.about.version
                 checks.append((f"vCenter reachable ({t.name})", True, f"v{version}"))
 
+                stage = f"vCenter version ({t.name})"
                 parts = tuple(int(x) for x in version.split(".")[:2])
                 if parts >= (8, 0):
                     checks.append(
@@ -112,6 +122,7 @@ def run_doctor(config_path: Path | None = None) -> bool:
                         )
                     )
 
+                stage = f"WCP enabled ({t.name})"
                 from vmware_vks.ops.supervisor import _rest_get
 
                 clusters = _rest_get(si, "/vcenter/namespace-management/clusters")
@@ -133,7 +144,7 @@ def run_doctor(config_path: Path | None = None) -> bool:
                         )
                     )
             except Exception as e:
-                checks.append((f"vCenter reachable ({t.name})", False, str(e)))
+                checks.append((stage, False, str(e)))
 
     # Print table
     table = Table(title="vmware-vks Doctor", show_header=True)
