@@ -788,7 +788,14 @@ def get_tkc_kubeconfig(
     output_path: Optional[str] = None,
     target: Optional[str] = None,
 ) -> dict:
-    """[READ] Get a kubeconfig for one TKC cluster.
+    """[WRITE] Get a kubeconfig for one TKC cluster.
+
+    Marked [WRITE] because `output_path` mkdir -p's and truncates a
+    caller-chosen file — ~/.kube/config by default, i.e. the user's own
+    kubeconfig. It reads the managed cluster, but this family's marker means
+    "no side effects", and writing a credentials file is one. Its sibling
+    vmware-aiops.vm_guest_download was corrected the same way in the same
+    round; the two had been given opposite answers to the same question.
 
     Returns {cluster, kubeconfig}, or {cluster, written_to} when
     output_path is given. Run list_tkc_clusters first for name and namespace;
