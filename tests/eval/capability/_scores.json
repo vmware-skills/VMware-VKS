@@ -1,5 +1,5 @@
 {
-  "_comment": "Capability eval scores. Regenerate with: pytest -m capability. These are tracked trends, not pass/fail gates \u2014 see _scoring.py.",
+  "_comment": "Capability eval scores. Regenerate with: pytest -m capability. These are tracked trends, not pass/fail gates \u2014 see _scoring.py. Entries marked stale=true were carried over from an earlier run because this run did not measure them.",
   "scores": {
     "entity_reachability_full": {
       "detail": {
@@ -12,16 +12,16 @@
           "list_tkc_clusters",
           "get_harbor_info"
         ],
-        "reachable_on_surface": 23,
+        "reachable_on_surface": 26,
         "reachable_only_via_description": 0,
-        "required_entity_params": 23,
-        "required_params_classified": "23/26",
-        "tool_count": 20
+        "required_entity_params": 26,
+        "required_params_classified": "26/30",
+        "tool_count": 23
       },
-      "maximum": 23,
+      "maximum": 26,
       "pct": 100.0,
       "unit": "required entity params",
-      "value": 23
+      "value": 26
     },
     "entity_reachability_read_only": {
       "detail": {
@@ -42,71 +42,97 @@
       },
       "maximum": 6,
       "pct": 100.0,
+      "stale": true,
       "unit": "required entity params",
       "value": 6
     },
     "entry_point_availability": {
       "detail": {
-        "full_entry_points": 6,
-        "read_only_entry_points": 6
+        "full_entry_points": 6
       },
-      "maximum": 11,
-      "pct": 54.5,
+      "maximum": 23,
+      "pct": 26.1,
       "unit": "entry points",
       "value": 6
     },
     "error_actionability": {
       "detail": {
         "composed_hint_sites": [],
-        "dead_end_count": 0,
-        "dead_end_errors": [],
+        "dead_end_count": 2,
+        "dead_end_errors": [
+          {
+            "message": "Could not create a vCenter REST API session. {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "rest_session.py:171"
+          },
+          {
+            "message": "Supervisor login failed. {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "wcp_login.py:109"
+          }
+        ],
         "per_dimension_pct": {
-          "names_artifact": 100.0,
-          "names_input": 96.2,
-          "states_remedy": 100.0
+          "names_artifact": 83.3,
+          "names_input": 94.4,
+          "states_remedy": 94.4
         },
-        "raise_sites": 26
+        "raise_sites": 36
       },
-      "maximum": 78,
-      "pct": 98.7,
+      "maximum": 108,
+      "pct": 90.7,
       "unit": "points",
-      "value": 77
+      "value": 98
     },
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
-          "create_namespace": 333,
-          "create_tkc_cluster": 343,
-          "delete_tkc_cluster": 262,
-          "scale_tkc_cluster": 249,
-          "update_namespace": 286
+          "create_namespace": 365,
+          "create_tkc_cluster": 381,
+          "delete_tkc_cluster": 288,
+          "get_tkc_kubeconfig": 379,
+          "update_namespace": 308
         },
-        "manifest_tokens": 3830,
-        "mean_tokens_per_tool": 191.5,
+        "manifest_tokens": 4936,
+        "mean_tokens_per_tool": 214.6,
         "reference_context": 16384,
-        "tool_count": 20
+        "tool_count": 23
       },
       "maximum": 16384,
-      "pct": 76.6,
+      "pct": 69.9,
       "unit": "tokens",
-      "value": 12554
+      "value": 11448
     },
     "parameter_documentation_coverage": {
       "detail": {
-        "undocumented_by_tool": {}
+        "undocumented_by_tool": {
+          "create_tkc_cluster": [
+            "storage_class"
+          ]
+        },
+        "value_set_candidates": {}
       },
-      "maximum": 65,
-      "pct": 100.0,
+      "maximum": 72,
+      "pct": 98.6,
       "unit": "parameters",
-      "value": 65
+      "value": 71
     },
     "per_tool_token_discipline": {
       "detail": {
         "ceiling": 350,
-        "over_ceiling": {}
+        "over_ceiling": {
+          "create_namespace": 365,
+          "create_tkc_cluster": 381,
+          "get_tkc_kubeconfig": 379
+        }
       },
-      "maximum": 20,
-      "pct": 100.0,
+      "maximum": 23,
+      "pct": 87.0,
       "unit": "tools",
       "value": 20
     },
@@ -130,6 +156,7 @@
       },
       "maximum": 3830,
       "pct": 58.4,
+      "stale": true,
       "unit": "tokens",
       "value": 2235
     },
@@ -137,79 +164,99 @@
       "detail": {
         "unmarked": []
       },
-      "maximum": 20,
+      "maximum": 23,
       "pct": 100.0,
       "unit": "points",
-      "value": 20
+      "value": 23
     },
     "remedy_survives_truncation": {
       "detail": {
         "budget_chars": 300,
-        "over_budget": [],
+        "over_budget": [
+          {
+            "budget": 300,
+            "chars": 357,
+            "where": "vmservice.py:160"
+          },
+          {
+            "budget": 300,
+            "chars": 314,
+            "where": "rest_session.py:209"
+          }
+        ],
         "remedy_after_interpolation": [
-          "config.py:186",
-          "config.py:221",
-          "config.py:209",
-          "k8s_connection.py:57",
-          "k8s_connection.py:69",
-          "k8s_connection.py:75",
-          "kubeconfig.py:111",
-          "kubeconfig.py:53",
-          "kubeconfig.py:126",
-          "namespace.py:136"
+          "config.py:189",
+          "config.py:246",
+          "config.py:212",
+          "connection.py:143",
+          "k8s_connection.py:71",
+          "k8s_connection.py:82",
+          "kubeconfig.py:113",
+          "kubeconfig.py:55",
+          "kubeconfig.py:128",
+          "namespace.py:153"
         ]
       },
-      "maximum": 26,
-      "pct": 100.0,
+      "maximum": 34,
+      "pct": 94.1,
       "unit": "messages",
-      "value": 26
+      "value": 32
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 26,
-      "pct": 100.0,
+      "maximum": 36,
+      "pct": 83.3,
       "unit": "messages",
-      "value": 26
+      "value": 30
     },
     "tool_description_quality": {
       "detail": {
         "per_dimension_pct": {
-          "args": 100.0,
-          "gotcha": 100.0,
+          "args": 95.7,
+          "gotcha": 91.3,
           "marker": 100.0,
-          "next_hop": 100.0,
+          "next_hop": 95.7,
           "what": 100.0,
-          "when": 100.0
+          "when": 91.3
         },
-        "tools_graded": 20,
+        "tools_graded": 23,
         "weakest_tools": {
           "check_vks_compatibility": [],
           "create_namespace": [],
-          "create_tkc_cluster": [],
+          "create_tkc_cluster": [
+            "args"
+          ],
           "delete_namespace": [],
           "delete_tkc_cluster": [],
           "get_harbor_info": [],
-          "get_namespace": [],
-          "get_supervisor_kubeconfig": []
+          "list_vm_groups": [
+            "gotcha",
+            "next_hop",
+            "when"
+          ],
+          "list_vm_network_interfaces": [
+            "gotcha",
+            "when"
+          ]
         }
       },
-      "maximum": 120,
-      "pct": 100.0,
+      "maximum": 138,
+      "pct": 95.7,
       "unit": "points",
-      "value": 120
+      "value": 132
     },
     "tool_failure_payload_quality": {
       "detail": {
         "bare_string_error_lines": [],
-        "carries_hint": 20,
-        "dict_shaped": 20,
-        "error_return_sites": 20,
-        "hint_names_artifact": 20
+        "carries_hint": 23,
+        "dict_shaped": 23,
+        "error_return_sites": 23,
+        "hint_names_artifact": 23
       },
-      "maximum": 60,
+      "maximum": 69,
       "pct": 100.0,
       "unit": "checks",
-      "value": 60
+      "value": 69
     }
   }
 }
