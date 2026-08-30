@@ -109,7 +109,7 @@ pip install --no-index --find-links dist vmware-vks
 2. 查看使用情况 → `vmware-vks storage -n dev`
 3. 更新配额 → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## 工具参考（20 个工具）
+## 工具参考（23 个工具）
 
 ### Supervisor
 
@@ -254,7 +254,7 @@ vmware-vks-mcp
 
 | 特性 | 说明 |
 |------|------|
-| 以只读为主 | 20 个工具中 13 个为只读 |
+| 以只读为主 | 23 个工具中 15 个为只读 |
 | 默认 dry-run | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 均默认 `dry_run=True` |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
