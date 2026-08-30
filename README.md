@@ -149,7 +149,7 @@ pip install --no-index --find-links dist vmware-vks
 | Tool | Description | Type |
 |------|-------------|------|
 | `get_supervisor_kubeconfig` | Supervisor kubeconfig YAML | Read |
-| `get_tkc_kubeconfig` | TKC kubeconfig (stdout or file) | Read |
+| `get_tkc_kubeconfig` | TKC kubeconfig (stdout or file) | Write |
 | `get_harbor_info` | Embedded Harbor registry info (id, cluster, version, URL, health, storage used) | Read |
 | `list_namespace_storage_usage` | PVC list and capacity stats | Read |
 
@@ -264,7 +264,7 @@ vmware-vks-mcp
 
 | Feature | Description |
 |---------|-------------|
-| Read-heavy | 16/23 tools are read-only |
+| Read-heavy | 15/23 tools are read-only |
 | Dry-run default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` all default to `dry_run=True` |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |

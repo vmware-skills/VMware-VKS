@@ -761,6 +761,7 @@ def kubeconfig_supervisor(
 
 @kubeconfig_app.command("get")
 @_cli_errors
+@guarded(risk_level='low')
 def kubeconfig_get(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),

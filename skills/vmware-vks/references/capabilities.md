@@ -8,7 +8,7 @@ Each operation is classified by autonomy level per the Enterprise Harness Engine
 
 | Level | Meaning | Agent autonomy | Examples in this skill |
 |:-:|---|---|---|
-| **L1** | Read-only, raw data | Always auto-run | `check_vks_compatibility`, `get_supervisor_status`, `list_supervisor_storage_policies`, `list_namespaces`, `get_namespace`, TKC list/get, kubeconfig fetch |
+| **L1** | Read-only, raw data | Always auto-run | `check_vks_compatibility`, `get_supervisor_status`, `list_supervisor_storage_policies`, `list_namespaces`, `get_namespace`, TKC list/get, `get_supervisor_kubeconfig` |
 | **L2** | Read + analysis / recommendation | Always auto-run | namespace quota analysis, TKC health correlation, storage policy compatibility checks |
 | **L3** | Single write — user must approve | Only after explicit confirmation; destructive ops require double-confirm + `--dry-run` | `create_namespace`, `update_namespace`, `delete_namespace`, `create_tkc_cluster`, `upgrade_tkc_cluster`, `scale_tkc_cluster`, `delete_tkc_cluster` |
 | **L4** | Multi-step plan / apply workflow | Plan generation auto; apply gated by user approval | *(roadmap — TKC fleet upgrades, multi-namespace bootstrapping plans)* |
@@ -17,7 +17,7 @@ Each operation is classified by autonomy level per the Enterprise Harness Engine
 **Notes**:
 - L1/L2 tools are always safe for agents to call without confirmation.
 - L3 tools always pass through the `@vmware_tool` decorator: connection check → policy check → audit log → double-confirm.
-- Kubeconfig retrieval (L1) returns short-lived session tokens; agents should write to file (`-o <path>`) rather than displaying tokens in conversation context.
+- Kubeconfig retrieval returns short-lived session tokens; agents should write to file (`-o <path>`) rather than displaying tokens in conversation context. `get_tkc_kubeconfig` is **not** L1 for that reason — `output_path` truncates a caller-chosen file, so it is annotated `readOnlyHint: false` and a client should confirm it.
 
 ## 1. Supervisor Layer (Read-Only)
 
@@ -67,7 +67,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 
 **Override** — `generate_tkc_yaml()` accepts an optional `api_version` parameter; pass `"v1"` (or any future version) explicitly when you want to pin a particular API surface for a generated TKC manifest. Most callers do not need this — auto-detection is the supported path.
 
-## 4. Access Layer (Read-Only)
+## 4. Access Layer
 
 | Tool | What it returns |
 |------|----------------|
@@ -87,7 +87,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |
 | Audit Trail | All write operations logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy) plus a local JSON-Lines mirror at `~/.vmware-vks/audit.log`, with timestamp, target, operation, parameters, result, user |
-| Read-Only Majority | 16/23 tools are read-only |
+| Read-Only Majority | 15/23 tools are read-only |
 | SSL Support | `verify_ssl: false` supported for self-signed vCenter certs (enterprise standard) |
 | In-Memory Kubeconfig | Supervisor/TKC kubeconfig is constructed as a Python dict and loaded into the kubernetes client via `load_kube_config_from_dict()`. The vCenter session bearer token never persists to disk during MCP/CLI calls — eliminates the temp-file TOCTOU window present pre-v1.5.18. Explicit `kubeconfig get -o <path>` export still writes to the user-chosen file for downstream `kubectl` use. |
 

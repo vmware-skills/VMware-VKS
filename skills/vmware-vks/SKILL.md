@@ -144,7 +144,7 @@ Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (23 — 16 read, 7 write)
+## MCP Tools (23 — 15 read, 8 write)
 
 All accept optional `target` parameter to specify a named vCenter.
 
@@ -176,7 +176,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 | | `list_vm_groups` | Read |
 | | `list_vm_network_interfaces` | Read |
 | **Access** | `get_supervisor_kubeconfig` | Read |
-| | `get_tkc_kubeconfig` | Read |
+| | `get_tkc_kubeconfig` | Write |
 | | `get_harbor_info` | Read |
 | | `list_namespace_storage_usage` | Read |
 

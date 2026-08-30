@@ -147,7 +147,7 @@ pip install --no-index --find-links dist vmware-vks
 | 工具 | 描述 | 类型 |
 |------|------|------|
 | `get_supervisor_kubeconfig` | Supervisor kubeconfig YAML | 只读 |
-| `get_tkc_kubeconfig` | TKC kubeconfig（标准输出或文件） | 只读 |
+| `get_tkc_kubeconfig` | TKC kubeconfig（标准输出或写文件） | 写 |
 | `get_harbor_info` | 内置 Harbor 仓库信息（ID、集群、版本、URL、健康状态、已用存储） | 只读 |
 | `list_namespace_storage_usage` | PVC 列表和容量统计 | 只读 |
 

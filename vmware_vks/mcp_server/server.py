@@ -757,7 +757,7 @@ def delete_tkc_cluster(
 # ---------------------------------------------------------------------------
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
-@vmware_tool(risk_level="low")
+@vmware_tool(risk_level="low", sensitive_result=True)
 def get_supervisor_kubeconfig(namespace: str, target: Optional[str] = None) -> dict:
     """[READ] Get a kubeconfig for the Supervisor K8s API endpoint.
 
@@ -779,8 +779,8 @@ def get_supervisor_kubeconfig(namespace: str, target: Optional[str] = None) -> d
         return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
 
 
-@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
-@vmware_tool(risk_level="low")
+@mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low", sensitive_result=True)
 def get_tkc_kubeconfig(
     name: str,
     namespace: str,
@@ -794,6 +794,14 @@ def get_tkc_kubeconfig(
     use get_supervisor_kubeconfig instead for Supervisor-level access.
     Security: it carries a short-lived session token — always prefer
     output_path so the credential never enters agent context.
+
+    Reads vSphere but is NOT annotated readOnlyHint — output_path creates
+    directories and truncates a caller-chosen file, so
+    output_path='~/.kube/config' overwrites the user's own kubeconfig.
+    readOnlyHint is what an MCP client consults to decide whether to ask
+    the user first, and it is about this tool's whole environment, not
+    just vSphere. The [READ] marker above stays accurate for what it
+    answers: nothing in the managed cluster changes.
 
     Args:
         name: TKC cluster name.
