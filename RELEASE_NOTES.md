@@ -1,3 +1,44 @@
+## v1.8.14 — the schema an agent reads now carries the descriptions
+
+Parameter descriptions reach the JSON schema for the first time. An MCP client
+sees the schema, not the docstring, and this repo's coverage of `description`
+and `additionalProperties` was 0% — while nearly every parameter was already
+described in an `Args:` block no client ever receives.
+
+Measured on a real VCF 9.1 estate, the gap produced a silent failure with no
+error at any stage: a parameter name guessed wrong is discarded and the tool
+returns the full unfiltered result; a value guessed wrong (`power_state=
+"running"`) returns 0 rows where there were 11.
+
+vmware-policy 1.10.0's `describe_tool_parameters` copies what is already
+written, so the docstring is now load-bearing and the two cannot drift apart. It
+removes the `Args:` block from the description once copied — both travel in
+every `tools/list` response, so leaving it bills the same sentences twice
+against the manifest's token budget. `additionalProperties` is closed: an open
+schema is room for a model to invent arguments that are then silently
+discarded, which is the other half of the same failure.
+
+**The `vmware-policy` floor moves to >=1.10.0.** Older releases have no
+`describe_tool_parameters`, and resolving one gives an ImportError at server
+start rather than a missing feature.
+
+Also in this release: `get_tkc_kubeconfig` returns a live session token, and the
+audit database was storing tool return values verbatim — so the credential
+landed in `~/.vmware/audit.db` in plaintext, written by the machinery that
+exists to make operations accountable, and which is also the artefact most
+likely to be copied off the machine or attached to a ticket. Both kubeconfig
+tools now declare `sensitive_result`, and vmware-policy 1.10.0 redacts the value
+while keeping who, when, with what arguments and whether it succeeded.
+
+Its `readOnlyHint` was also wrong: `output_path` creates directories and
+truncates a caller-chosen file — `~/.kube/config` by default, i.e. the user own
+kubeconfig. Correcting it surfaced that `vmware-vks kubeconfig get` was not
+`@guarded` either, bypassing policy and audit entirely. The `[READ]` marker went
+with it, matching how vmware-aiops `vm_guest_download` was decided in the same
+round.
+
+The Chinese README also said 20 tools where there are 23.
+
 ## v1.8.13 — six copies of "which config file", down to one
 
 Found against a real VCF 9.1 estate. `load_config()` never consulted
