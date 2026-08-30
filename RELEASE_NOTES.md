@@ -1,3 +1,32 @@
+## v1.8.13 — six copies of "which config file", down to one
+
+Found against a real VCF 9.1 estate. `load_config()` never consulted
+`VMWARE_VKS_CONFIG`, but the MCP server did — so the agent and the human opened
+different files, and `doctor` reported on the human's.
+
+This repo had the worst spread in the family: **six** places each deciding the
+config path for themselves — `load_config`, `cli._get_si`,
+`cli.cmd_preflight_auth`, `preflight_auth._connect_step`,
+`server._get_conn_mgr`, and the doctor. Inside the CLI alone, `check` and
+`preflight-auth` could validate different Supervisors in the same shell. The
+doctor's copy was the worst of them: it resolved the default itself and then
+passed that path *explicitly* down to `load_config`, suppressing the variable
+there too — internally consistent about the wrong file, and reporting it green.
+
+The precedence now lives in one `resolve_config_path`. A structural test asserts
+no caller re-derives it, and asserts on `os.environ` rather than on the
+variable's name, because three docstrings here mention that name and a grep
+cannot tell a read from a mention.
+
+**This changes CLI behaviour**: `vmware-vks` now honours `VMWARE_VKS_CONFIG`,
+where it previously ignored it. The variable is this skill's advertised
+`primaryEnv`, so ignoring it was the defect.
+
+Also: `server.json` never started the MCP server — it carried only the package
+identifier, so a registry client composed `uvx vmware-vks`, which runs the CLI
+and exits. And the Dockerfile copied `pyproject.toml` without `README.md`, which
+`readme =` declares, so `docker build` failed before it started.
+
 ## v1.8.12 — a Workload Management failure was reported as a connectivity failure
 
 `vmware-vks check` against a real vCenter printed the same row twice: passing
