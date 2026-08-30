@@ -1,3 +1,3 @@
 """vmware-vks — MCP Skill + CLI for vSphere with Tanzu (VKS)."""
 
-__version__ = "1.8.14"
+__version__ = "1.8.15"

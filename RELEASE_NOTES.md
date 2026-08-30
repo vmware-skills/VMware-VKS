@@ -1,3 +1,36 @@
+## v1.8.15 — a SOAP key used as a REST token, and a 401 blamed on the password
+
+Every REST tool returned 401, and the error said "insufficient permission" — so
+the user was sent to fix credentials that were correct. The code put a **SOAP**
+session key in the `vmware-api-session-id` header for the vSphere **Automation**
+API, which mints its own id at `POST /api/session` and rejects one it never
+issued. The previous release's REST-auth fix was for a different layer entirely;
+this half had never been done.
+
+A 401 and a 403 no longer share a sentence: one has already survived a silent
+re-login and names the session and any proxy stripping the header, the other
+keeps the permissions message.
+
+The suite also stopped writing to the operator's real audit database, where it
+had left rows including `delete_tkc_cluster {"confirmed": true}` for a cluster
+that never existed.
+
+**The `vmware-policy` floor moves to >=1.11.0.** Policy 1.11.0 stops the engine
+failing open: on a host whose locale is not UTF-8, reading `rules.yaml` raised a
+decode error that was swallowed, and a `freeze-production-writes` rule came back
+ALLOW. No new API is used here, so the floor could have stayed — it is raised
+because leaving it low means a user resolving 1.10.0 keeps the permissive engine
+and the fix never reaches them. One behaviour travels with it: on a host whose
+rules file cannot be read, operations move from all-allowed to all-denied.
+`VMWARE_POLICY_DISABLED=1` is checked above the rules, so the escape hatch does
+not itself depend on them loading.
+
+Also in this release: the suite no longer appends to the operator's real
+`~/.vmware/audit.db`. It held over 30,000 rows dominated by tool names nobody
+had invoked, including 1,400 entries for a destructive operation that never
+happened — an audit trail carrying test fiction cannot answer the question it is
+kept for.
+
 ## v1.8.14 — the schema an agent reads now carries the descriptions
 
 Parameter descriptions reach the JSON schema for the first time. An MCP client
