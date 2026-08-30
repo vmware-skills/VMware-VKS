@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import functools
-import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -65,8 +64,11 @@ def _get_si(target: str | None = None):
     from vmware_vks.config import load_config
     from vmware_vks.connection import ConnectionManager
 
-    config_path = os.environ.get("VMWARE_VKS_CONFIG")
-    config = load_config(Path(config_path) if config_path else None)
+    # No env-var read here: load_config resolves the path (explicit arg, then
+    # the environment, then the default). This was one of five copies of that
+    # rule, and load_config's copy was the one that did not look at the
+    # variable — so the surfaces disagreed about which file was in force.
+    config = load_config()
     mgr = ConnectionManager(config)
     return mgr.connect(target)
 
@@ -223,8 +225,7 @@ def cmd_preflight_auth(
     else:
         from vmware_vks.config import load_config
 
-        config_path = os.environ.get("VMWARE_VKS_CONFIG")
-        config = load_config(Path(config_path) if config_path else None)
+        config = load_config()
         names = [t.name for t in config.targets] or [None]
 
     all_passed = True

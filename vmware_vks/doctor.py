@@ -15,12 +15,20 @@ console = Console()
 
 def run_doctor(config_path: Path | None = None) -> bool:
     """Run all pre-flight checks. Returns True if all pass."""
-    from vmware_vks.config import CONFIG_FILE, ENV_FILE, load_config
+    from vmware_vks.config import ENV_FILE, load_config, resolve_config_path
 
     checks: list[tuple[str, bool, str]] = []
 
     # 1. Config file
-    path = config_path or CONFIG_FILE
+    #
+    # Resolved exactly as the tools resolve it — including $VMWARE_VKS_CONFIG,
+    # which this function used to skip. With the variable set it inspected
+    # ~/.vmware-vks/config.yaml, found it fine, and reported PASS while every
+    # tool call opened a different file; worse, it then passed this path
+    # *explicitly* to load_config below, which suppressed the variable there
+    # too, so the whole report was internally consistent about the wrong file
+    # (2026-08-30).
+    path = resolve_config_path(config_path)
     if path.exists():
         checks.append(("Config file", True, str(path)))
     else:

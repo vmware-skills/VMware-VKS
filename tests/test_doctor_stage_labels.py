@@ -44,7 +44,14 @@ def _run(monkeypatch, capsys, fail_at) -> str:
     import vmware_vks.ops.supervisor as sup
 
     monkeypatch.setattr(cfgmod, "load_config", lambda *a, **k: _Cfg())
-    monkeypatch.setattr(doctor, "CONFIG_FILE", pathlib.Path("/nonexistent"), raising=False)
+    # The doctor asks config.resolve_config_path() since 2026-08-30, so it no
+    # longer reads a CONFIG_FILE attribute off this module — the patch that
+    # used to sit here had `raising=False` and was already setting an attribute
+    # nothing read. Point the default at a missing path where the resolver
+    # actually looks, and clear the override so the ambient environment cannot
+    # decide which file this test is about.
+    monkeypatch.delenv("VMWARE_VKS_CONFIG", raising=False)
+    monkeypatch.setattr(cfgmod, "CONFIG_FILE", pathlib.Path("/nonexistent"))
 
     class Mgr:
         def __init__(self, cfg):

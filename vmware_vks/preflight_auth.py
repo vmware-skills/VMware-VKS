@@ -61,15 +61,14 @@ class PreflightResult:
 def _connect_step(target_name: Optional[str]) -> tuple[Optional["ServiceInstance"], Step]:
     """Step 1: reach vCenter and open a pyVmomi session for the target."""
     try:
-        from pathlib import Path
-
-        import os
-
         from vmware_vks.config import load_config
         from vmware_vks.connection import ConnectionManager
 
-        config_path = os.environ.get("VMWARE_VKS_CONFIG")
-        config = load_config(Path(config_path) if config_path else None)
+        # load_config resolves the path itself (explicit arg, then the
+        # environment, then the default); reading $VMWARE_VKS_CONFIG here was
+        # one of the copies that let this command validate a different
+        # Supervisor from the one `vmware-vks check` had just cleared.
+        config = load_config()
         mgr = ConnectionManager(config)
         si = mgr.connect(target_name)
         host = si._stub.host.split(":")[0]

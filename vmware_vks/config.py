@@ -217,13 +217,35 @@ class AppConfig:
         return self.targets[0]
 
 
+def resolve_config_path(config_path: Path | None = None) -> Path:
+    """Which config file this skill will read: explicit arg, env var, default.
+
+    The single place that precedence lives. Before 2026-08-30 it was written
+    out six times and they did not agree: this function's job was done inline
+    in ``load_config``, which ignored ``VMWARE_VKS_CONFIG`` entirely, while
+    ``cli._get_si``, ``cli.cmd_preflight_auth``,
+    ``preflight_auth._connect_step`` and the MCP server each read the variable
+    themselves, and the doctor resolved ``config_path or CONFIG_FILE`` and then
+    passed that path explicitly to ``load_config`` — suppressing the variable
+    there too, so it made itself consistent with the wrong file rather than
+    merely reading it. The variable is this skill's advertised ``primaryEnv``,
+    so the surfaces that honoured it were right; ``load_config`` was the one
+    that was wrong. Copies of a rule do not disagree loudly; they disagree
+    slowly (形态 #6).
+    """
+    if config_path is not None:
+        return config_path
+    env_override = os.environ.get("VMWARE_VKS_CONFIG")
+    return Path(env_override) if env_override else CONFIG_FILE
+
+
 def load_config(config_path: Path | None = None) -> AppConfig:
     """Load config from YAML file."""
-    path = config_path or CONFIG_FILE
+    path = resolve_config_path(config_path)
     if not path.exists():
         raise FileNotFoundError(
             f"Config file not found: {path}\n"
-            f"Copy config.example.yaml to {CONFIG_FILE} and edit it."
+            f"Copy config.example.yaml to {path} and edit it."
         )
     with open(path) as f:
         raw = yaml.safe_load(f) or {}
