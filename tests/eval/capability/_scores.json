@@ -12,16 +12,16 @@
           "list_tkc_clusters",
           "get_harbor_info"
         ],
-        "reachable_on_surface": 26,
+        "reachable_on_surface": 27,
         "reachable_only_via_description": 0,
-        "required_entity_params": 26,
-        "required_params_classified": "26/30",
+        "required_entity_params": 27,
+        "required_params_classified": "27/30",
         "tool_count": 23
       },
-      "maximum": 26,
+      "maximum": 27,
       "pct": 100.0,
       "unit": "required entity params",
-      "value": 26
+      "value": 27
     },
     "entity_reachability_read_only": {
       "detail": {
@@ -172,18 +172,7 @@
     "remedy_survives_truncation": {
       "detail": {
         "budget_chars": 300,
-        "over_budget": [
-          {
-            "budget": 300,
-            "chars": 357,
-            "where": "vmservice.py:160"
-          },
-          {
-            "budget": 300,
-            "chars": 314,
-            "where": "rest_session.py:209"
-          }
-        ],
+        "over_budget": [],
         "remedy_after_interpolation": [
           "config.py:189",
           "config.py:246",
@@ -198,9 +187,9 @@
         ]
       },
       "maximum": 34,
-      "pct": 94.1,
+      "pct": 100.0,
       "unit": "messages",
-      "value": 32
+      "value": 34
     },
     "teaching_error_rate": {
       "detail": {},

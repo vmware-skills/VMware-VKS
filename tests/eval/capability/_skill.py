@@ -47,6 +47,13 @@ ENTITY_WORDS = {
     'vm_class': ('vm_class', 'vm_classes'),
     'storage_policy': ('storage_policy', 'storage_policies'),
     'version': ('version', 'versions', 'k8s_version'),
+    # An entity, and deliberately not in NOT_AN_ENTITY: this skill asks for a VM
+    # by name and ships no tool that lists VMs, so the operator must bring the
+    # name from vmware-aiops or the vSphere client. Classifying it as
+    # operator-supplied — the `worker_count` category — would hide that gap
+    # behind a definition instead of scoring it. Reachability is meant to be
+    # low here until a listing exists.
+    'vm': ('vm', 'vms', 'vm_name'),
 }
 
 #: Skill-specific parameters that end in an entity suffix but are supplied by the

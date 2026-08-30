@@ -207,12 +207,10 @@ def get_rest_session_id(si: ServiceInstance) -> str:
     target = get_target_config(si)
     if target is None:
         raise VksApiError(
-            "No connection target metadata for this session — this "
-            "ServiceInstance was not opened by ConnectionManager, so the "
-            "credentials needed to create a vCenter REST API session are "
-            "unavailable. Connect via vmware_vks.connection.ConnectionManager, "
-            "and run 'vmware-vks check' to verify the target resolves from "
-            "config.yaml."
+            "Connect via vmware_vks.connection.ConnectionManager, then run "
+            "'vmware-vks check' to verify the target resolves from config.yaml. "
+            "This ServiceInstance was not opened by ConnectionManager, so the "
+            "credentials for a vCenter REST session are unavailable."
         )
 
     host = vcenter_host(si)

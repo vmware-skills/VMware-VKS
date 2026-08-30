@@ -158,13 +158,9 @@ def _resolve_version(si: ServiceInstance, namespace: str, plural: str) -> str:
     if picked is None:
         found = ", ".join(sorted(served)) or "none"
         raise VksApiError(
-            f"The {kind} CRD (plural '{plural}') is not served on this Supervisor: "
-            f"it requires {_VMOP_GROUP}/{min_version} or newer, but the served "
-            f"versions are: {found}. VirtualMachineSnapshot needs a Supervisor at "
-            f"vmoperator v1alpha5+ and VirtualMachineGroup needs v1alpha4+ — "
-            f"upgrade the Supervisor, or run "
-            f"'kubectl api-resources | grep vmoperator' against it to confirm what "
-            f"is served."
+            f"Upgrade the Supervisor, or run 'kubectl api-resources | grep "
+            f"vmoperator' to confirm what it serves. {kind} (plural '{plural}') "
+            f"needs {_VMOP_GROUP}/{min_version} or newer; served: {found}."
         )
     return picked
 
