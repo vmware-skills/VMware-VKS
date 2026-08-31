@@ -216,6 +216,12 @@ def cmd_init(
     raise typer.Exit(run_init(force=force, skip_test=skip_test))
 
 
+# Registered under both names on purpose. Every other skill in the family calls
+# this `doctor`, and documentation, troubleshooting steps and habit all say
+# "run doctor"; someone following those against VKS got "No such command" and
+# no hint that the identical check was one word away. The body is shared, so the
+# two can never drift into meaning different things.
+@app.command("doctor")
 @app.command("check")
 def cmd_check(
     config: Optional[Path] = typer.Option(None, help="Path to config.yaml"),

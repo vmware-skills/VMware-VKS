@@ -4,6 +4,8 @@ init reference (no false promise — 踩坑 #2), and teaching auth/TLS errors.
 
 from __future__ import annotations
 
+from vmware_policy.fsperms import assert_owner_only
+
 import ssl
 from pathlib import Path
 
@@ -50,7 +52,7 @@ def test_init_writes_grep_safe_env(
     # Env key must match config.py's TargetConfig.password: VMWARE_VKS_<NAME>_PASSWORD.
     assert "VMWARE_VKS_LAB_VC_PASSWORD=b64:" in env_text
     assert "S3cr3t!pw" not in env_text  # never plaintext on disk
-    assert (_wizard_env / ".env").stat().st_mode & 0o777 == 0o600
+    assert_owner_only(_wizard_env / ".env")
     line = next(
         ln
         for ln in env_text.splitlines()
