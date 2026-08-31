@@ -42,7 +42,7 @@ class AuditLogger:
         }
         try:
             existed = self._file.exists()
-            with open(self._file, "a") as f:
+            with open(self._file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry) + "\n")
             if not existed:
                 # Restrict the log (operation history) to owner-only on creation.

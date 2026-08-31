@@ -14,7 +14,7 @@ import ssl
 import time
 import urllib.error
 import urllib.request
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from pyVmomi.vim import ServiceInstance
@@ -169,30 +169,77 @@ def _rest_delete(si: ServiceInstance, path: str) -> None:
 
 
 def check_vks_compatibility(si: ServiceInstance) -> dict:
-    """Check if this vCenter supports VKS (vSphere 8.x+)."""
+    """Check whether this vCenter supports VKS, and whether Workload Management is on.
+
+    These are two different questions and used to be answered by one boolean.
+    ``compatible`` says only that the vCenter is new enough; it says nothing
+    about whether a Supervisor exists, and it stayed ``True`` while every REST
+    call on the box was failing.
+
+    That mattered because this is the tool the rest of the skill points people
+    at. ``k8s_connection`` tells a caller "Run check_vks_compatibility to
+    confirm this vCenter supports VKS" -- so during the round-2 outage where
+    every REST call returned 401, the designated diagnostic answered
+    ``compatible: true, wcp_enabled_clusters: 0`` and the byte-for-byte same
+    payload it returns for a healthy vCenter with no Supervisor configured.
+
+    ``wcp_query_failed`` / ``wcp_query_error`` are therefore not decoration:
+    "we could not ask" and "the answer is none" are the two states a caller has
+    to tell apart, and the previous shape made them identical.
+    """
     about = si.content.about
     version_str = about.version
     parts = tuple(int(x) for x in version_str.split(".")[:3])
-    compatible = parts >= _MIN_VERSION
+    version_compatible = parts >= _MIN_VERSION
 
+    clusters: list[dict] = []
+    query_failed = False
+    query_error: Optional[str] = None
     try:
         clusters = _rest_get(si, "/vcenter/namespace-management/clusters")
-    except Exception:
-        clusters = []
+    except Exception as exc:  # noqa: BLE001 — the failure IS the answer here
+        query_failed = True
+        query_error = f"{type(exc).__name__}: {exc}"
 
     enabled = [c for c in clusters if c.get("config_status") == "RUNNING"]
 
+    if not version_compatible:
+        hint = "VKS requires vSphere 8.0+. Upgrade vCenter."
+    elif query_failed:
+        hint = (
+            "Could not read namespace-management clusters, so whether Workload "
+            f"Management is enabled is unknown -- not 'no'. Underlying error: "
+            f"{query_error}. Check the vCenter REST session (`vmware-vks check`) "
+            "and the account's Namespaces.Manage privilege, then re-run."
+        )
+    elif not enabled:
+        hint = (
+            "This vCenter is new enough for VKS but no cluster has Workload "
+            "Management enabled, so there is no Supervisor to talk to. Enable it "
+            "in vSphere Client > Workload Management, or point at a vCenter that "
+            "already has one."
+        )
+    else:
+        hint = None
+
     return {
-        "compatible": compatible,
+        # Kept for callers written against the old shape; it has always meant
+        # "the vCenter build is new enough", never "VKS is usable here".
+        "compatible": version_compatible,
+        "version_compatible": version_compatible,
+        # None, not False, when the query failed: an unknown must not read as a no.
+        "workload_management_enabled": None if query_failed else bool(enabled),
+        "wcp_query_failed": query_failed,
+        "wcp_query_error": query_error,
         "vcenter_version": version_str,
         "vcenter_build": about.build,
         "min_required_version": "8.0.0",
-        "wcp_enabled_clusters": len(enabled),
+        "wcp_enabled_clusters": None if query_failed else len(enabled),
         "wcp_clusters": [
             {"cluster": c.get("cluster"), "status": c.get("config_status")}
             for c in clusters
         ],
-        "hint": None if compatible else "VKS requires vSphere 8.0+. Upgrade vCenter.",
+        "hint": hint,
     }
 
 

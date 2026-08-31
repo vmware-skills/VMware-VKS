@@ -11,7 +11,7 @@ FORBIDDEN_CALLS = {
 def test_no_vm_lifecycle_ops():
     src_dir = pathlib.Path("vmware_vks")
     for py_file in src_dir.rglob("*.py"):
-        source = py_file.read_text()
+        source = py_file.read_text(encoding="utf-8")
         tree = ast.parse(source)
         for node in ast.walk(tree):
             if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_CALLS:

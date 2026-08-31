@@ -32,6 +32,7 @@ from vmware_policy import (
     sanitize,
     set_environment_resolver,
     vmware_tool,
+    skill_name,
 )
 
 from vmware_vks.config import CONFIG_FILE, ConfigError, load_config
@@ -112,6 +113,39 @@ def _safe_error(exc: Exception, tool: str) -> str:
     return f"{type(exc).__name__}: operation failed."
 
 
+def _tool_error(exc: Exception) -> dict:
+    """One error payload for every tool, with the connectivity hint only when it fits.
+
+    The same line -- "Run 'vmware-vks check' to verify connectivity." -- was
+    pasted onto sixteen handlers, and it is wrong more often than it is right.
+    ``get_supervisor_status`` on a vCenter without Workload Management returns
+    vCenter's own precise sentence, "Cluster with identifier domain-c9 does not
+    have Workloads enabled", and then told the reader to go check connectivity
+    that was never broken -- ``vmware-vks check`` passes.
+
+    Worse, the hint sat *beside* errors this skill had already authored a remedy
+    for: ``k8s_connection`` raises "no Supervisor is RUNNING, run
+    check_vks_compatibility, then get_supervisor_status", and the generic line
+    displaced it as the thing an agent acts on.
+
+    So the hint is attached only to errors the skill did not author. Anything
+    deriving from ``VksError`` -- which is every error written for an agent to
+    read, including the REST layer's translated ones -- carries its own next
+    step and gets no second, contradictory one.
+    """
+    if isinstance(exc, VksError):
+        return {"error": _safe_error(exc, "vks")}
+    return {
+        "error": _safe_error(exc, "vks"),
+        "hint": (
+            "This is not an error this skill authored, so there is no specific "
+            "remedy. Run `vmware-vks check` to confirm the vCenter connection "
+            "and credentials, then retry."
+        ),
+    }
+
+
+
 mcp = FastMCP("VMware VKS")
 
 # FastMCP takes no version argument and leaves the lowlevel server's at
@@ -161,7 +195,7 @@ def check_vks_compatibility(target: Optional[str] = None) -> dict:
         from vmware_vks.ops import supervisor as _sup
         return _sup.check_vks_compatibility(si)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -186,7 +220,7 @@ def get_supervisor_status(cluster_id: str, target: Optional[str] = None) -> dict
         from vmware_vks.ops import supervisor as _sup
         return _sup.get_supervisor_status(si, cluster_id)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -208,7 +242,7 @@ def list_supervisor_storage_policies(target: Optional[str] = None) -> dict:
         from vmware_vks.ops import supervisor as _sup
         return _sup.list_supervisor_storage_policies(si)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +269,7 @@ def list_namespaces(target: Optional[str] = None) -> dict:
         from vmware_vks.ops import namespace as _ns
         return _ns.list_namespaces(si)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -259,7 +293,7 @@ def get_namespace(name: str, target: Optional[str] = None) -> dict:
         from vmware_vks.ops import namespace as _ns
         return _ns.get_namespace(si, name)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True})
@@ -448,7 +482,7 @@ def list_vm_classes(target: Optional[str] = None) -> dict:
         from vmware_vks.ops import namespace as _ns
         return _ns.list_vm_classes(si)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -475,7 +509,7 @@ def list_tkc_clusters(namespace: Optional[str] = None, target: Optional[str] = N
         from vmware_vks.ops import tkc as _tkc
         return _tkc.list_tkc_clusters(si, namespace=namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -500,7 +534,7 @@ def get_tkc_cluster(name: str, namespace: str, target: Optional[str] = None) -> 
         from vmware_vks.ops import tkc as _tkc
         return _tkc.get_tkc_cluster(si, name, namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -523,7 +557,7 @@ def get_tkc_available_versions(namespace: str, target: Optional[str] = None) -> 
         from vmware_vks.ops import tkc as _tkc
         return _tkc.get_tkc_available_versions(si, namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True})
@@ -759,25 +793,37 @@ def delete_tkc_cluster(
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low", sensitive_result=True)
-def get_supervisor_kubeconfig(namespace: str, target: Optional[str] = None) -> dict:
+def get_supervisor_kubeconfig(
+    namespace: str,
+    output_path: Optional[str] = None,
+    target: Optional[str] = None,
+) -> dict:
     """[READ] Get a kubeconfig for the Supervisor K8s API endpoint.
 
-    Returns {namespace, kubeconfig} as a YAML string. Use this for
-    Supervisor-level access; use get_tkc_kubeconfig instead to reach workloads
-    inside a TKC cluster. Security: it carries a short-lived session token —
-    treat it as a credential, do not log or share.
+    Returns {namespace, kubeconfig} as a YAML string, or {namespace,
+    written_to} when output_path is given. Use this for Supervisor-level
+    access; use get_tkc_kubeconfig instead to reach workloads inside a TKC
+    cluster. Security: it carries a short-lived session token — prefer
+    output_path so the credential never enters agent context. This is the
+    higher-privileged of the two kubeconfigs, and until now it had no way to
+    avoid being returned inline while its sibling's docstring recommended
+    exactly that.
 
     Args:
         namespace: vSphere Namespace to set as the kubeconfig context.
+        output_path: File to write, e.g. '~/.kube/supervisor.yaml'. Omit to
+            return the kubeconfig inline. Creates parent directories and
+            truncates the file.
         target: vCenter in config.yaml; omit for the default.
     """
     try:
+        from pathlib import Path
         si = _get_si(target)
         from vmware_vks.ops import kubeconfig as _kc
-        kc_str = _kc.get_supervisor_kubeconfig_str(si, namespace)
-        return {"namespace": namespace, "kubeconfig": kc_str}
+        path = Path(output_path).expanduser() if output_path else None
+        return _kc.write_supervisor_kubeconfig(si, namespace, output_path=path)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True, "openWorldHint": True})
@@ -825,7 +871,7 @@ def get_tkc_kubeconfig(
         path = Path(output_path).expanduser() if output_path else None
         return _kc.write_kubeconfig(si, name, namespace, output_path=path)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -848,7 +894,7 @@ def get_harbor_info(target: Optional[str] = None) -> dict:
         from vmware_vks.ops import harbor as _harbor
         return _harbor.get_harbor_info(si)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -874,7 +920,7 @@ def list_namespace_storage_usage(namespace: str, target: Optional[str] = None) -
         from vmware_vks.ops import storage as _storage
         return _storage.list_namespace_storage_usage(si, namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -905,7 +951,7 @@ def list_vm_snapshots(namespace: str, target: Optional[str] = None) -> dict:
         from vmware_vks.ops import vmservice as _vmsvc
         return _vmsvc.list_vm_snapshots(si, namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -930,7 +976,7 @@ def list_vm_groups(namespace: str, target: Optional[str] = None) -> dict:
         from vmware_vks.ops import vmservice as _vmsvc
         return _vmsvc.list_vm_groups(si, namespace)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -958,7 +1004,7 @@ def list_vm_network_interfaces(
         from vmware_vks.ops import vmservice as _vmsvc
         return _vmsvc.list_vm_network_interfaces(si, namespace, vm_name)
     except Exception as e:
-        return {"error": _safe_error(e, "vks"), "hint": "Run 'vmware-vks check' to verify connectivity."}
+        return _tool_error(e)
 
 
 # ---------------------------------------------------------------------------
@@ -987,7 +1033,12 @@ def _environment_for(target: Optional[str]) -> str:
         return ""
 
 
-set_environment_resolver(_environment_for)
+# Keyed by skill: the registry used to be one process-global slot, and a
+# bare `import` of any sibling's server module replaced whichever resolver
+# was there -- measured turning a freeze-production-writes rule from DENY
+# to ALLOW. Keyed, a resolver only ever answers for its own skill, so
+# registering at import time is safe again.
+set_environment_resolver(_environment_for, skill=skill_name(__name__))
 
 
 # ---------------------------------------------------------------------------

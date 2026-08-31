@@ -124,7 +124,13 @@ def test_the_audit_row_still_says_who_called_what_and_whether_it_worked(audit_db
     assert row["status"] == "ok"
     assert row["user"]
     assert row["ts"]
-    assert json.loads(row["params"]) == {"namespace": "ns-prod", "target": "vc1"}
+    # output_path is recorded as given (None here): where a credential was
+    # written is exactly the kind of thing the audit row exists to say.
+    assert json.loads(row["params"]) == {
+        "namespace": "ns-prod",
+        "output_path": None,
+        "target": "vc1",
+    }
 
 
 @pytest.mark.unit

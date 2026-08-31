@@ -92,7 +92,7 @@ def run_init(force: bool = False, skip_test: bool = False) -> int:
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     config = {"targets": [target]}
-    CONFIG_FILE.write_text(yaml.safe_dump(config, sort_keys=False))
+    CONFIG_FILE.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     env_key = _write_env(target["name"], password)
 
     console.print()

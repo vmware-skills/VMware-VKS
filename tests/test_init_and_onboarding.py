@@ -46,7 +46,7 @@ def test_init_writes_grep_safe_env(
     )
     assert init_wizard.run_init(skip_test=True) == 0
 
-    env_text = (_wizard_env / ".env").read_text()
+    env_text = (_wizard_env / ".env").read_text(encoding="utf-8")
     # Env key must match config.py's TargetConfig.password: VMWARE_VKS_<NAME>_PASSWORD.
     assert "VMWARE_VKS_LAB_VC_PASSWORD=b64:" in env_text
     assert "S3cr3t!pw" not in env_text  # never plaintext on disk
@@ -71,7 +71,7 @@ def _init_registered() -> bool:
 def test_doctor_init_reference_is_backed_by_real_command():
     from vmware_vks import doctor
 
-    src = Path(doctor.__file__).read_text()
+    src = Path(doctor.__file__).read_text(encoding="utf-8")
     if "vmware-vks init" in src:
         assert _init_registered(), (
             "doctor recommends init but no such command is registered"

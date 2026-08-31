@@ -136,6 +136,27 @@ def _write_kubeconfig_file(output_path: Path, content: str) -> Path:
     return target
 
 
+def write_supervisor_kubeconfig(
+    si: ServiceInstance,
+    namespace: str,
+    output_path: Path | None = None,
+) -> dict:
+    """Write the Supervisor kubeconfig to a file, or return it as a string.
+
+    The TKC tool has had ``output_path`` from the start, and its docstring tells
+    callers to "always prefer output_path so the credential never enters agent
+    context". This one had no such parameter -- so the only way to obtain the
+    *higher-privileged* of the two credentials was to have it returned into the
+    conversation. The advice and the missing parameter were pointing in opposite
+    directions.
+    """
+    content = get_supervisor_kubeconfig_str(si, namespace)
+    if output_path:
+        written = _write_kubeconfig_file(output_path, content)
+        return {"namespace": namespace, "written_to": str(written)}
+    return {"namespace": namespace, "kubeconfig": content}
+
+
 def write_kubeconfig(
     si: ServiceInstance,
     cluster_name: str,

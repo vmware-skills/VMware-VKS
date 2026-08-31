@@ -18,7 +18,7 @@ def test_audit_log_writes_json_line(tmp_path):
         user="admin@vsphere.local",
     )
 
-    content = log_file.read_text().strip()
+    content = log_file.read_text(encoding="utf-8").strip()
     entry = json.loads(content)
     assert entry["target"] == "vcenter.example.com"
     assert entry["operation"] == "create_namespace"
@@ -70,7 +70,7 @@ def test_audit_log_appends(tmp_path):
         result="failure",
     )
 
-    lines = log_file.read_text().strip().split("\n")
+    lines = log_file.read_text(encoding="utf-8").strip().split("\n")
     assert len(lines) == 2
 
     entry1 = json.loads(lines[0])

@@ -247,7 +247,7 @@ def load_config(config_path: Path | None = None) -> AppConfig:
             f"Config file not found: {path}\n"
             f"Copy config.example.yaml to {path} and edit it."
         )
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
     if isinstance(raw, dict) and "read_only" in raw:
         _log.warning(

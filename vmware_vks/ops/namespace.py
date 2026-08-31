@@ -47,6 +47,15 @@ def list_namespaces(si: ServiceInstance) -> dict:
     collection in one response, so ``total`` is the real namespace count and
     ``truncated`` is always False — the agent is told the listing is complete
     rather than left to guess (VMware-AIops issue #31).
+
+    An empty result is annotated, because on this endpoint zero has two
+    meanings. ``/api/vcenter/namespaces/instances`` answers ``200 []`` on a
+    vCenter with no Workload Management at all, exactly as it does on a healthy
+    Supervisor that simply has no namespaces yet (verified against a live
+    vCenter, round 3). Returning the bare empty envelope was faithful and
+    useless: an agent reads "there are no namespaces here" and moves on, when
+    the true statement is "there is no Supervisor here". Its three sibling tools
+    already say so with a teaching error; this one stayed silent.
     """
     data = _rest_get(si, "/vcenter/namespaces/instances")
     rows = [
@@ -57,7 +66,37 @@ def list_namespaces(si: ServiceInstance) -> dict:
         }
         for item in (data if isinstance(data, list) else [])
     ]
-    return paginated(rows, total=len(rows))
+    extra = {} if rows else {"empty_reason": _why_no_namespaces(si)}
+    return paginated(rows, total=len(rows), **extra)
+
+
+def _why_no_namespaces(si: ServiceInstance) -> str:
+    """Say which kind of zero this is. One extra REST call, only when empty."""
+    from vmware_vks.ops.supervisor import check_vks_compatibility
+
+    try:
+        compat = check_vks_compatibility(si)
+    except Exception as exc:  # noqa: BLE001 — an unusable probe must not mask the list
+        return (
+            f"No namespaces returned. Could not determine whether Workload "
+            f"Management is enabled on this vCenter ({type(exc).__name__}), so "
+            f"this may be an empty Supervisor or no Supervisor at all."
+        )
+    if compat.get("wcp_query_failed"):
+        return (
+            "No namespaces returned, and the namespace-management query also "
+            f"failed ({compat.get('wcp_query_error')}). Treat this zero as "
+            "unknown, not as empty. Run `vmware-vks check`, then "
+            "check_vks_compatibility."
+        )
+    if compat.get("workload_management_enabled") is False:
+        return (
+            "No namespaces returned because no cluster on this vCenter has "
+            "Workload Management enabled — there is no Supervisor to hold "
+            "namespaces. Enable it in vSphere Client > Workload Management, or "
+            "target a vCenter that already has one."
+        )
+    return "No namespaces exist on this Supervisor yet."
 
 
 def get_namespace(si: ServiceInstance, name: str) -> dict:

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-import stat
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
+from vmware_policy.fsperms import check_secret_file
 
 _log = logging.getLogger("vmware-vks.doctor")
 console = Console()
@@ -57,19 +57,12 @@ def run_doctor(config_path: Path | None = None) -> bool:
             )
         )
     else:
-        mode = ENV_FILE.stat().st_mode
-        if mode & (stat.S_IRWXG | stat.S_IRWXO):
-            checks.append(
-                (
-                    ".env file",
-                    False,
-                    f"Permissions too open ({oct(stat.S_IMODE(mode))}) — "
-                    f"other users on this host can read your passwords. "
-                    f"Run: chmod 600 {ENV_FILE}",
-                )
-            )
-        else:
-            checks.append((".env file", True, f"Found, permissions 600: {ENV_FILE}"))
+        # Three states, not two — see vmware_policy.fsperms. Windows has no
+        # POSIX mode bits and `chmod 600` there exits 0 without changing
+        # anything, so the old two-state check was permanently red with an
+        # inert remedy.
+        check = check_secret_file(ENV_FILE)
+        checks.append((".env file", not check.is_failure, check.message))
 
     # 2. Load config
     config = None

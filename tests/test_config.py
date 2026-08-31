@@ -25,7 +25,7 @@ def test_load_config(tmp_path):
         "  - name: vc1\n"
         "    host: vc.example.com\n"
         "    username: admin@vsphere.local\n"
-    )
+    , encoding="utf-8")
     config = load_config(cfg_file)
     assert len(config.targets) == 1
     assert config.targets[0].name == "vc1"
@@ -44,7 +44,7 @@ def test_get_target_not_found(tmp_path):
         "  - name: vc1\n"
         "    host: vc.example.com\n"
         "    username: admin@vsphere.local\n"
-    )
+    , encoding="utf-8")
     config = load_config(cfg_file)
     with pytest.raises(KeyError, match="vc2"):
         config.get_target("vc2")
@@ -66,7 +66,7 @@ def test_username_and_password_rotate_together(tmp_path, monkeypatch):
         "  - name: vc1\n"
         "    host: vc.example.com\n"
         "    username: config-file-user\n"
-    )
+    , encoding="utf-8")
 
     monkeypatch.setenv("VMWARE_VKS_VC1_USERNAME", "svc-a@vsphere.local")
     monkeypatch.setenv("VMWARE_VKS_VC1_PASSWORD", "pw-a")
@@ -88,7 +88,7 @@ def test_username_falls_back_to_config_file(tmp_path, monkeypatch):
         "  - name: vc1\n"
         "    host: vc.example.com\n"
         "    username: config-file-user\n"
-    )
+    , encoding="utf-8")
     monkeypatch.delenv("VMWARE_VKS_VC1_USERNAME", raising=False)
     target = load_config(cfg_file).targets[0]
     assert target.config_username == "config-file-user"

@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "vmware-vks",
   "displayName": "VMware VKS",
-  "version": "1.8.15",
+  "version": "1.9.0",
   "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
   "author": {
     "name": "Wei Zhou",

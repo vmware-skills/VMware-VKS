@@ -450,7 +450,7 @@ def test_skill_md_tool_counts_match_list_tools():
     skill_md = (
         Path(__file__).resolve().parents[3]
         / "skills" / "vmware-vks" / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     m = re.search(r"## MCP Tools \((\d+) — (\d+) read, (\d+) write\)", skill_md)
     assert m, "SKILL.md MCP Tools header not found or malformed"
     assert (int(m.group(1)), int(m.group(2)), int(m.group(3))) == (

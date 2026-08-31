@@ -67,7 +67,7 @@ def test_write_kubeconfig_to_file(tmp_path):
         result = write_kubeconfig(si, "my-cluster", "dev", output_path=output_file)
 
     assert output_file.exists()
-    assert output_file.read_text() == fake_kubeconfig
+    assert output_file.read_text(encoding="utf-8") == fake_kubeconfig
     # Verify file permissions are 0o600
     assert oct(output_file.stat().st_mode & 0o777) == oct(0o600)
     assert result["cluster"] == "my-cluster"

@@ -26,7 +26,7 @@ from tests.eval.spec import vmservice_endpoints as spec
 from vmware_vks.errors import VksApiError
 from vmware_vks.ops import vmservice as vmsvc
 
-_OPS_SOURCE = Path(vmsvc.__file__).read_text()
+_OPS_SOURCE = Path(vmsvc.__file__).read_text(encoding="utf-8")
 
 ENVELOPE_KEYS = {"items", "returned", "limit", "total", "truncated", "hint"}
 
