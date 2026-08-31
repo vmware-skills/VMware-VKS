@@ -1,3 +1,14 @@
+## v1.9.1 — `doctor` as a name for the check that was already there
+
+Every other skill in the family calls this `doctor`. The documentation,
+troubleshooting steps and habit all say "run doctor"; someone following those
+against VKS got "No such command" and no hint that the identical check was one
+word away. Both names share the body, so they cannot drift into meaning different
+things.
+
+Also: `.env` permissions go through `vmware_policy.fsperms` instead of POSIX mode
+bits.
+
 ## v1.9.0 — the diagnostic tool answered `compatible: true` throughout the outage it exists to diagnose
 
 
