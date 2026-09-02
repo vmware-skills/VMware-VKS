@@ -1,3 +1,18 @@
+## v1.9.2 — a kubeconfig fetch is not destructive, and never defaulted to ~/.kube/config
+
+Two corrections to `get_tkc_kubeconfig`, neither of which changes behaviour.
+
+`destructiveHint` is now False. It reads the managed cluster and destroys nothing
+in it. It stays `[WRITE]` and `sensitive_result=True`, because with `output_path`
+it truncates a file the caller named and the content is a live token.
+
+The docstring claimed `output_path` defaults to `~/.kube/config`, "i.e. the
+user's own kubeconfig". It never did — the tool parameter and the CLI's
+`--output` both default to None, and with no path nothing is written and the
+kubeconfig is returned inline. A docstring inventing a dangerous default is the
+same defect class an external scan had just flagged elsewhere in this family:
+documentation disagreeing with the code about a safety property.
+
 ## v1.9.1 — `doctor` as a name for the check that was already there
 
 Every other skill in the family calls this `doctor`. The documentation,
