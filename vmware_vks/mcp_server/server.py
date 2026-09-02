@@ -826,7 +826,13 @@ def get_supervisor_kubeconfig(
         return _tool_error(e)
 
 
-@mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True, "openWorldHint": True})
+# destructiveHint is False: this reads the managed cluster and destroys nothing
+# in it. It stays [WRITE] and sensitive_result=True, because with `output_path`
+# it truncates a file the caller named and the content is a live token — but the
+# family's "destructive tools double-confirm in the CLI" gate is about destroying
+# managed infrastructure, and demanding two prompts before fetching a kubeconfig
+# to a path the operator just typed is friction without a hazard behind it.
+@mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low", sensitive_result=True)
 def get_tkc_kubeconfig(
     name: str,
@@ -836,10 +842,12 @@ def get_tkc_kubeconfig(
 ) -> dict:
     """[WRITE] Get a kubeconfig for one TKC cluster.
 
-    Marked [WRITE] because `output_path` mkdir -p's and truncates a
-    caller-chosen file — ~/.kube/config by default, i.e. the user's own
-    kubeconfig. It reads the managed cluster, but this family's marker means
-    "no side effects", and writing a credentials file is one. Its sibling
+    Marked [WRITE] because `output_path`, when given, mkdir -p's and truncates
+    a caller-chosen file. It reads the managed cluster, but this family's marker
+    means "no side effects", and writing a credentials file is one. With no
+    `output_path` nothing is written and the kubeconfig is returned inline —
+    this docstring previously said it defaulted to ~/.kube/config, which was
+    never true of either the tool or the CLI. Its sibling
     vmware-aiops.vm_guest_download was corrected the same way in the same
     round; the two had been given opposite answers to the same question.
 
