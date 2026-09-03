@@ -27,6 +27,8 @@ import atexit
 import os
 import shutil
 import tempfile
+
+import pytest
 from pathlib import Path
 
 from vmware_policy.audit import reset_engine
@@ -52,3 +54,38 @@ os.environ["USERPROFILE"] = str(SANDBOX_HOME)
 reset_engine()
 
 atexit.register(shutil.rmtree, SANDBOX_HOME, True)
+
+
+@pytest.fixture(autouse=True)
+def _no_leaked_side_store_entries():
+    """Clear the ``id(si)`` side stores between tests.
+
+    ``connection._SI_TARGET`` and ``_SI_VERIFY_SSL`` are module-level dicts keyed
+    by ``id(si)`` — pyVmomi 8.x refuses attribute writes on a ManagedObject, so
+    per-connection metadata cannot live on the object (踩坑 #32). Helpers that
+    register a fake ``si`` and never unregister it leave an entry keyed by an
+    address whose object is then collected, and CPython reuses addresses almost
+    immediately: a later test's fresh ``MagicMock`` can land on one and inherit
+    another test's credentials.
+
+    That is not hypothetical, and the rate is not small. Leaking 400 entries —
+    roughly what this suite does through its ``_si()`` helpers — and then
+    allocating 400 fresh ``MagicMock`` objects, 26 of them inherited a stale
+    target. After clearing, 0. That is why ``test_a_session_without_connection
+    _metadata_names_the_fix``, which asserts a raw ``si`` has *no* credentials on
+    file, failed once in a gate run and then passed nine times in a row: whether
+    the new mock lands on a recycled address depends on allocation history.
+
+    A single leaked entry reproduces nothing — the first attempt at this looked
+    clean. It takes the suite's real leak volume to see it.
+
+    Autouse rather than a fix to each helper, so a helper added later cannot
+    reintroduce it.
+    """
+    from vmware_vks import connection as _conn
+
+    _conn._SI_TARGET.clear()
+    _conn._SI_VERIFY_SSL.clear()
+    yield
+    _conn._SI_TARGET.clear()
+    _conn._SI_VERIFY_SSL.clear()
