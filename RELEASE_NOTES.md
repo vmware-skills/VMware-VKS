@@ -1,3 +1,19 @@
+## v1.9.3 — two documented flags that do not exist
+
+`tkc delete` was documented with `[--force]`. The option is called
+`--skip-workload-check` — following the documentation gets "No such option" on
+the command that deletes a Kubernetes cluster.
+
+`check` was documented with `--target`. It takes only `--config`; the doctor
+checks every configured target and cannot be pointed at one.
+
+Neither delete command mentioned that it asks you to type the resource name back
+before proceeding, so a reader had no way to know the command would stop and
+wait. The reference now says so, and that `--skip-workload-check` skips the
+workload guard rather than the confirmation.
+
+Documentation only; no behaviour changes.
+
 ## v1.9.2 — a kubeconfig fetch is not destructive, and never defaulted to ~/.kube/config
 
 Two corrections to `get_tkc_kubeconfig`, neither of which changes behaviour.
