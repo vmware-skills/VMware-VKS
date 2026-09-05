@@ -7,12 +7,12 @@
     "url": "https://github.com/vmware-skills/VMware-VKS",
     "source": "github"
   },
-  "version": "1.9.3",
+  "version": "1.9.4",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "vmware-vks",
-      "version": "1.9.3",
+      "version": "1.9.4",
       "runtimeHint": "uvx",
       "packageArguments": [
         {
