@@ -1,0 +1,24 @@
+{
+  "id": "vmware-vks",
+  "name": "VMware VKS",
+  "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
+  "skills": [
+    "./skills"
+  ],
+  "mcpServers": {
+    "vmware-vks": {
+      "transport": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-vks==1.10.0",
+        "vmware-vks-mcp"
+      ]
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

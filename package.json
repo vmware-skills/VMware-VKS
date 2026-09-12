@@ -1,0 +1,20 @@
+{
+  "name": "@zw008/vmware-vks",
+  "version": "1.10.0",
+  "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://github.com/vmware-skills/VMware-VKS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vmware-skills/VMware-VKS.git"
+  },
+  "openclaw": {
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.3.24-beta.2"
+    }
+  }
+}
