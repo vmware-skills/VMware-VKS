@@ -86,13 +86,21 @@ vmware-vks tkc delete <cluster-name> -n <namespace> \
 ## Kubeconfig
 
 ```bash
-# Get Supervisor-level kubeconfig
-vmware-vks kubeconfig supervisor -n <namespace> [--target <name>]
+# Get Supervisor-level kubeconfig (stdout, or -o to write a file)
+vmware-vks kubeconfig supervisor -n <namespace> [-o <output-path>] [--target <name>]
 
-# Get TKC cluster kubeconfig (stdout or write to file)
+# Get TKC cluster kubeconfig (stdout, or -o to write a file)
 vmware-vks kubeconfig get <cluster-name> -n <namespace> \
   [-o <output-path>] [--target <name>]
 ```
+
+Both commands are **credential access**: the kubeconfig embeds a Supervisor
+bearer token (JWT from `/wcp/login`) that acts as your vCenter account until it
+expires (typically hours). Run them only when the user asked for a kubeconfig,
+and pass `-o`: the file is created owner-only (0600), also when it replaces an
+existing file, and a symlink target is refused. Both are `@guarded`, so the
+retrieval is recorded in `~/.vmware/audit.db` (the token is not). Delete the
+file when you no longer need it.
 
 ## Harbor & Storage
 

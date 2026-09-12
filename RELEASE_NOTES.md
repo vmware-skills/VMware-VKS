@@ -1,3 +1,53 @@
+## v1.10.0 — a kubeconfig is credential access, on every surface
+
+`get_supervisor_kubeconfig` was published `readOnlyHint: true`, so MCP clients ran it without
+asking — the higher-privileged of the two kubeconfig tools. Both are now `readOnlyHint: false`,
+risk `medium`, and described as credential access: fetch only on an explicit request, write to a
+file rather than into the conversation. **Behaviour change:** a deny rule with
+`min_risk_level: medium` now also stops kubeconfig retrieval.
+
+Exported kubeconfigs are written to a new owner-only temp file and moved into place, so a reader
+already holding the old file never sees the token and a failed export leaves the old file intact.
+`vmware-vks kubeconfig supervisor` gained `-o` and is guarded, and CLI output is byte-exact — Rich
+used to wrap long lines at 80 columns when piped, corrupting the token.
+
+**CLI writes are authorised and audited under their MCP tool names**, so one deny rule scopes
+both surfaces; audit rows for these commands carry the new names from this release on:
+
+| CLI command | was | now |
+|---|---|---|
+| `namespace create` | `namespace_create` | `create_namespace` |
+| `namespace update` | `namespace_update` | `update_namespace` |
+| `namespace delete` | `namespace_delete` | `delete_namespace` |
+| `tkc create` | `tkc_create` | `create_tkc_cluster` |
+| `tkc scale` | `tkc_scale` | `scale_tkc_cluster` |
+| `tkc upgrade` | `tkc_upgrade` | `upgrade_tkc_cluster` |
+| `tkc delete` | `tkc_delete` | `delete_tkc_cluster` |
+| `kubeconfig get` | `kubeconfig_get` | `get_tkc_kubeconfig` |
+| `kubeconfig supervisor` | (not audited) | `get_supervisor_kubeconfig` |
+
+Rows written before this release keep the old names, so a query over `~/.vmware/audit.db` that
+spans the upgrade needs both. **A deny rule written against an old CLI name no longer matches** —
+rename it to the MCP tool name in the table, or the command it was meant to stop runs unchecked.
+
+CLI writes also register the environment resolver, so environment-scoped rules apply to them.
+
+**OpenClaw could not show this skill to the model.** `metadata.openclaw.requires` listed
+config *file paths* under `requires.config`, which OpenClaw reads as `openclaw.json` keys that
+must be truthy — so the skill was "needs setup / not visible to the model" whatever was on disk
+(verified on OpenClaw 2026.6.35). `requires.env` named an optional override and `requires.bins`
+demanded a CLI that a plugin install (uvx) never has. `requires` is now `anyBins: [<cli>, "uvx"]`;
+the variables are still declared, under `optional.env`.
+
+**Install commands in the skill pin this release.** ClawHub reviews SKILL.md and references/,
+not the package they install, so an unpinned `uv tool install` vouched for code nobody reviewed.
+Every install command for this package in the skill now names this version.
+
+**A config path written as `~/…` now resolves.** Every MCP example config and setup-guide snippet
+sets `VMWARE_VKS_CONFIG` to `~/.vmware-vks/config.yaml`, but MCP clients pass env values verbatim and the
+path was used unexpanded, so copying the snippet gave "Config file not found" for a file that was
+there. `~` is now expanded in the variable and in `--config`.
+
 ## v1.9.4 — a dropped connection no longer keeps itself alive
 
 Every `connect()` registered an `atexit` cleanup that closes over the

@@ -1,6 +1,7 @@
 """Tests for kubeconfig ops."""
 from unittest.mock import MagicMock, patch
 import pytest
+from vmware_policy.fsperms import assert_owner_only
 from vmware_vks.ops.kubeconfig import (
     get_supervisor_kubeconfig_str,
     get_tkc_kubeconfig_str,
@@ -68,7 +69,7 @@ def test_write_kubeconfig_to_file(tmp_path):
 
     assert output_file.exists()
     assert output_file.read_text(encoding="utf-8") == fake_kubeconfig
-    # Verify file permissions are 0o600
-    assert oct(output_file.stat().st_mode & 0o777) == oct(0o600)
+    # Owner-only; exact 0o600 on POSIX, "not too open" where there are no mode bits.
+    assert_owner_only(output_file)
     assert result["cluster"] == "my-cluster"
     assert result["written_to"] == str(output_file)

@@ -158,7 +158,9 @@ def _cli_write_commands() -> tuple[list[str], list[str]]:
 
 def test_every_write_cli_command_is_guarded():
     writing, unguarded = _cli_write_commands()
-    assert len(writing) >= 5, (
+    # namespace create/update/delete, tkc create/scale/upgrade/delete, and the two
+    # kubeconfig exports (credential access, guarded like writes).
+    assert len(writing) >= 9, (
         f"only {len(writing)} write CLI commands derived ({writing}) — the "
         f"MCP→ops→CLI derivation is likely stale; a check matching almost nothing "
         f"is worse than none."
@@ -166,6 +168,87 @@ def test_every_write_cli_command_is_guarded():
     assert not unguarded, (
         f"these CLI commands call a [WRITE] ops function but are not @guarded, so "
         f"they bypass policy + audit (HLD I-1): {unguarded}"
+    )
+
+
+def _op_to_mcp_tools() -> dict[str, set[str]]:
+    """Write ops function -> the MCP write tools whose body calls it."""
+    targets = _write_tool_names()
+    out: dict[str, set[str]] = {}
+    for path in sorted(_tools_dir().rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        func_map, mods = _ops_refs(tree)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name in targets:
+                for op in _ops_calls(node, func_map, mods):
+                    out.setdefault(op, set()).add(node.name)
+    return out
+
+
+# Guarded CLI commands with no MCP write twin derivable from the ops function they
+# call, each with the reason. Empty today: every guarded command maps to exactly
+# one MCP write tool. A guarded command missing from the derivation used to be
+# skipped silently — it was neither checked nor reported — so a rename or a
+# derivation that stopped resolving it passed. Now the skipped set must equal
+# this list exactly, and adding to it needs a stated reason.
+_NO_DERIVED_TWIN: dict[str, str] = {}
+
+
+def test_guarded_cli_writes_carry_their_mcp_tool_name():
+    """A deny rule names a tool; it must stop the CLI twin of that tool too (HLD I-3).
+
+    ``@guarded`` defaults the tool name to the function's ``__name__``, so
+    ``tkc delete`` was guarded as ``tkc_delete`` while its MCP twin is
+    ``delete_tkc_cluster`` — a rule denying ``delete_tkc_cluster`` refused the
+    agent and let the same delete through the CLI, and the two surfaces wrote
+    the one audit sink under two names. The twin is DERIVED: the MCP write tool
+    that calls the same ops function the command calls.
+    """
+    from vmware_vks import cli
+    from vmware_vks.mcp_server import server as srv
+
+    op_tools = _op_to_mcp_tools()
+    write_ops = frozenset(op_tools)
+    checked: list[str] = []
+    skipped: list[str] = []
+    mismatched: list[str] = []
+    for path in _cli_files():
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        func_map, mods = _ops_refs(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            ops = _ops_calls(node, func_map, mods) & write_ops
+            fn = getattr(cli, node.name, None)
+            if not getattr(fn, "_is_guarded", False):
+                continue  # unguarded writes are the test above's finding
+            if not ops:
+                skipped.append(node.name)
+                continue
+            twins = set().union(*(op_tools[o] for o in ops))
+            assert len(twins) == 1, (
+                f"{node.name} maps to several MCP tools {sorted(twins)} — pick "
+                f"the one it mirrors explicitly"
+            )
+            (twin,) = twins
+            checked.append(node.name)
+            if fn._guarded_tool != twin:
+                mismatched.append(f"{node.name}: guarded as {fn._guarded_tool!r}, MCP tool {twin!r}")
+            elif fn._risk_level != getattr(srv, twin)._risk_level:
+                mismatched.append(
+                    f"{node.name}: risk {fn._risk_level!r}, MCP tool {twin!r} "
+                    f"risk {getattr(srv, twin)._risk_level!r}"
+                )
+    assert sorted(skipped) == sorted(_NO_DERIVED_TWIN), (
+        f"guarded CLI commands with no derived MCP twin: {sorted(skipped)}, expected "
+        f"{sorted(_NO_DERIVED_TWIN)} — their name and risk went unchecked. Fix the "
+        f"derivation, or list the command in _NO_DERIVED_TWIN with a reason"
+    )
+    assert len(checked) >= 9, f"only {checked} checked — derivation likely stale"
+    assert not mismatched, (
+        "these CLI writes are guarded under a different name or risk than their "
+        "MCP tool, so one deny rule does not scope both surfaces — pass the MCP "
+        "tool name to @guarded(...): " + "; ".join(mismatched)
     )
 
 

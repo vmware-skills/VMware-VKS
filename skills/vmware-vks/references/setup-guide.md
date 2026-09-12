@@ -8,13 +8,13 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS
+npx skills add vmware-skills/VMware-VKS#v1.10.0
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install @zw008/vmware-vks
+clawhub install @zw008/vmware-vks --version 1.10.0
 
 # Via PyPI (recommended for version pinning)
-uv tool install vmware-vks==1.2.3
+uv tool install vmware-vks==1.10.0
 ```
 
 ### Claude Code
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone https://github.com/vmware-skills/VMware-VKS.git
+git clone --branch v1.10.0 https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -58,7 +58,7 @@ uv pip install -e .
 
 ```bash
 # 1. Install from PyPI
-uv tool install vmware-vks
+uv tool install vmware-vks==1.10.0
 
 # 2. Configure
 mkdir -p ~/.vmware-vks
@@ -103,7 +103,7 @@ For Claude Code / Cursor users who prefer structured tool calls, add to `~/.clau
 ```
 
 > v1.5.15+ recommends the single-command form `vmware-vks mcp`. Pre-1.5.15 used
-> `uvx --from vmware-vks vmware-vks-mcp`, which still works but re-resolves from
+> `uvx --from vmware-vks vmware-vks-mcp`, which still works but re-resolves from <!-- install-pin: historical -->
 > PyPI on each launch and breaks behind corporate TLS proxies. The legacy
 > `vmware-vks-mcp` entry point is also kept for backward compatibility.
 
@@ -138,6 +138,22 @@ whitespace are handled correctly).
 > Secrets Manager, or a Kubernetes Secret) into the `*_PASSWORD` environment
 > variable at process start. The code reads the env var either way.
 
+### Local files, permissions and retention
+
+Everything this skill keeps on disk is sensitive. Nothing is deleted
+automatically except audit-DB archives beyond the newest five.
+
+| Path | Contents | Permissions | Retention |
+|---|---|---|---|
+| `~/.vmware-vks/.env` | Per-target passwords (`b64:`-obfuscated, not encrypted) | Created 0600 by `vmware-vks init`; `vmware-vks doctor` and every CLI/MCP start warn if it is wider | Until you remove it |
+| `~/.vmware-vks/config.yaml` | Hostnames, usernames, `verify_ssl` — no passwords | Your umask | Until you remove it |
+| `~/.vmware/audit.db` (+ `-wal`, `-shm`) | Every MCP tool call and every `@guarded` CLI command: tool, parameters, result (credentials redacted), status, OS user | 0600, directory 0700 | Rotated at 100 MB; the 5 newest archives are kept |
+| `~/.vmware-vks/audit.log` | JSON-Lines mirror of namespace/TKC write operations | 0600, directory 0700 | Never rotated or pruned |
+| Exported kubeconfig (`output_path` / `-o`) | Supervisor bearer token, valid until the JWT expires (typically hours) | 0600, also when replacing an existing file; symlink targets refused | Never cleaned up — delete it when done |
+
+Prune the audit files according to your own retention policy; for the kubeconfig,
+prefer a short-lived path and delete it after use.
+
 ## Read-Only Operation
 
 To run the agent read-only, give it a read-only vCenter/Supervisor service account (RBAC).
@@ -150,15 +166,15 @@ This skill follows a defense-in-depth approach with six security properties:
 
 1. **Source Code** -- MIT-licensed, fully auditable. No obfuscated logic. Source at [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS). The `uv` installer fetches the `vmware-vks` package from PyPI, which is built from this GitHub repository.
 
-2. **Credentials** -- `config.yaml` contains vCenter hostnames and usernames only. Passwords are loaded exclusively from `~/.vmware-vks/.env` (read via `python-dotenv`). Passwords are never logged, never echoed to CLI output, and never included in audit log entries. **In-memory kubeconfig (v1.5.18+)**: Supervisor and TKC kubeconfigs — which embed the vCenter session bearer token — are built as a Python dict and handed to the kubernetes client via `load_kube_config_from_dict()`. The bearer token never touches disk during normal MCP/CLI flow, eliminating the previous temp-file TOCTOU window. The explicit `vmware-vks kubeconfig get -o <path>` CLI export still writes to the user-chosen path so `kubectl` can use it.
+2. **Credentials** -- `config.yaml` contains vCenter hostnames and usernames only. Passwords are loaded exclusively from `~/.vmware-vks/.env` (read via `python-dotenv`). Passwords are never logged, never echoed to CLI output, and never included in audit log entries. **Kubeconfig retrieval is credential access**: `get_supervisor_kubeconfig` / `get_tkc_kubeconfig` (CLI: `kubeconfig supervisor` / `kubeconfig get`) return a kubeconfig embedding a Supervisor bearer token (JWT from `POST /wcp/login`) that acts as the configured vCenter account until it expires — typically hours, not tied to the vmware-vks process. Both MCP tools are annotated `readOnlyHint: false` and `risk_level: medium`; run them only on explicit user request and always export with `output_path` / `-o <path>` (owner-only 0600 file) instead of printing the token. Their audit rows redact the returned kubeconfig. **In-memory kubeconfig (v1.5.18+)**: for the skill's own API calls the kubeconfig is built as a Python dict and handed to the kubernetes client via `load_kube_config_from_dict()`, so the token is never written to a temp file; only an explicit export writes it to disk.
 
-3. **Network Scope** -- No webhook, HTTP listener, or inbound network connection is ever started. MCP transport is stdio only. All outbound connections go to the user-configured vCenter host only.
+3. **Network Scope** -- No webhook, HTTP listener, or inbound network connection is ever started. MCP transport is stdio only. Outbound connections go to the user-configured vCenter, to the Supervisor Kubernetes API endpoint that vCenter reports for the cluster (`api_server_cluster_endpoint`), and — for `delete_tkc_cluster`'s running-workload check only — to that TKC cluster's control-plane endpoint as recorded on the Supervisor.
 
 4. **TLS Verification** -- `verify_ssl: false` is supported for self-signed vCenter certificates (standard in enterprise environments). Set `verify_ssl: true` in config for CA-signed certificates. Applies to both the SOAP API and REST API connections.
 
 5. **Prompt Injection Protection** -- All tool inputs are passed as typed Python parameters (`str`, `int`, `bool`), never interpolated into shell commands. No `eval`, `exec`, or subprocess calls with user-controlled data.
 
-6. **Least Privilege** -- 15/23 tools are read-only. All write operations default to `dry_run=True` where applicable. Destructive operations (`delete_namespace`, `delete_tkc_cluster`) require explicit `confirmed=True` and pass through safety guards that cannot be bypassed without `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
+6. **Least Privilege** -- 14/23 tools are read-only. All write operations default to `dry_run=True` where applicable. Destructive operations (`delete_namespace`, `delete_tkc_cluster`) require explicit `confirmed=True` and pass through safety guards that cannot be bypassed without `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
 
 ## Supported AI Platforms
 

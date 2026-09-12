@@ -28,18 +28,16 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 from vmware_policy import (
     describe_tool_parameters,
-    mtime_cached_loader,
     sanitize,
-    set_environment_resolver,
     vmware_tool,
-    skill_name,
 )
 
-from vmware_vks.config import CONFIG_FILE, ConfigError, load_config
+from vmware_vks import __version__
+from vmware_vks.config import ConfigError, load_config
 from vmware_vks.connection import ConnectionManager
 from vmware_vks.errors import VksError
 from vmware_vks.notify.audit import AuditLogger
-from vmware_vks import __version__
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vmware-vks.mcp")
 
@@ -791,23 +789,31 @@ def delete_tkc_cluster(
 # Access tools
 # ---------------------------------------------------------------------------
 
-@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
-@vmware_tool(risk_level="low", sensitive_result=True)
+# Credential access, not a read: readOnlyHint is False and risk_level is
+# "medium" for both kubeconfig tools. readOnlyHint is what an MCP client uses to
+# decide whether to run a tool without asking, and this one hands back a live
+# Supervisor bearer token (and, with output_path, truncates a caller-chosen
+# file). It was annotated read-only until 2026-09-11 while its TKC sibling was
+# not — the reason given for the sibling (output_path writes a file) became
+# true of this tool too when output_path was added, and the annotation stayed.
+@mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="medium", sensitive_result=True)
 def get_supervisor_kubeconfig(
     namespace: str,
     output_path: Optional[str] = None,
     target: Optional[str] = None,
 ) -> dict:
-    """[READ] Get a kubeconfig for the Supervisor K8s API endpoint.
+    """[WRITE] Credential access: get a kubeconfig for the Supervisor K8s API.
 
-    Returns {namespace, kubeconfig} as a YAML string, or {namespace,
-    written_to} when output_path is given. Use this for Supervisor-level
-    access; use get_tkc_kubeconfig instead to reach workloads inside a TKC
-    cluster. Security: it carries a short-lived session token — prefer
-    output_path so the credential never enters agent context. This is the
-    higher-privileged of the two kubeconfigs, and until now it had no way to
-    avoid being returned inline while its sibling's docstring recommended
-    exactly that.
+    Call only when the user explicitly asks for this kubeconfig; never as a
+    side step. Returns {namespace, kubeconfig} as a YAML string, or
+    {namespace, written_to} when output_path is given. The kubeconfig embeds
+    a Supervisor bearer token (JWT from /wcp/login) that acts as the
+    configured vCenter account until the JWT expires (typically hours; not
+    tied to this process) — always pass output_path so the token never
+    enters agent context, and report only the path. The file is created
+    owner-only (0600). Use get_tkc_kubeconfig instead to reach workloads
+    inside a TKC cluster.
 
     Args:
         namespace: vSphere Namespace to set as the kubeconfig context.
@@ -833,37 +839,26 @@ def get_supervisor_kubeconfig(
 # managed infrastructure, and demanding two prompts before fetching a kubeconfig
 # to a path the operator just typed is friction without a hazard behind it.
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
-@vmware_tool(risk_level="low", sensitive_result=True)
+@vmware_tool(risk_level="medium", sensitive_result=True)
 def get_tkc_kubeconfig(
     name: str,
     namespace: str,
     output_path: Optional[str] = None,
     target: Optional[str] = None,
 ) -> dict:
-    """[WRITE] Get a kubeconfig for one TKC cluster.
+    """[WRITE] Credential access: get a kubeconfig for one TKC cluster.
 
-    Marked [WRITE] because `output_path`, when given, mkdir -p's and truncates
-    a caller-chosen file. It reads the managed cluster, but this family's marker
-    means "no side effects", and writing a credentials file is one. With no
-    `output_path` nothing is written and the kubeconfig is returned inline —
-    this docstring previously said it defaulted to ~/.kube/config, which was
-    never true of either the tool or the CLI. Its sibling
-    vmware-aiops.vm_guest_download was corrected the same way in the same
-    round; the two had been given opposite answers to the same question.
-
-    Returns {cluster, kubeconfig}, or {cluster, written_to} when
-    output_path is given. Run list_tkc_clusters first for name and namespace;
-    use get_supervisor_kubeconfig instead for Supervisor-level access.
-    Security: it carries a short-lived session token — always prefer
-    output_path so the credential never enters agent context.
-
-    Reads vSphere but is NOT annotated readOnlyHint — output_path creates
-    directories and truncates a caller-chosen file, so
-    output_path='~/.kube/config' overwrites the user's own kubeconfig.
-    readOnlyHint is what an MCP client consults to decide whether to ask
-    the user first, and it is about this tool's whole environment, not
-    just vSphere. The [READ] marker above stays accurate for what it
-    answers: nothing in the managed cluster changes.
+    Call only when the user explicitly asks for this kubeconfig; never as a
+    side step. Returns {cluster, kubeconfig}, or {cluster, written_to} when
+    output_path is given. The kubeconfig embeds a Supervisor bearer token
+    (JWT from /wcp/login) that acts as the configured vCenter account until
+    the JWT expires (typically hours; not tied to this process) — always pass
+    output_path so the token never enters agent context, and report only the path. Nothing in
+    the managed cluster changes, but output_path creates parent directories
+    and truncates the named file (owner-only, 0600), so
+    output_path='~/.kube/config' replaces the user's own kubeconfig. Run
+    list_tkc_clusters first for name and namespace; use
+    get_supervisor_kubeconfig instead for Supervisor-level access.
 
     Args:
         name: TKC cluster name.
@@ -1019,35 +1014,13 @@ def list_vm_network_interfaces(
 # Environment declaration
 # ---------------------------------------------------------------------------
 
-
-_cached_config = mtime_cached_loader("VMWARE_VKS_CONFIG", CONFIG_FILE, load_config)
-
-
-def _environment_for(target: Optional[str]) -> str:
-    """Report the environment a target declares, for policy scoping.
-
-    Policy rules scope by environment ("irreversible work in production needs a
-    second person"), and vmware-policy cannot read this skill's config itself.
-    Registering this lookup is what lets those rules fire at all. Reloaded on
-    config.yaml mtime change so an edit takes effect without restarting the
-    server, and resolved through the same VMWARE_VKS_CONFIG override the
-    connection manager uses so both agree on which file is in force. The config
-    is cached via :func:`vmware_policy.mtime_cached_loader`, so repeated tool
-    calls pay one ``os.stat`` instead of a full YAML parse.
-    """
-    try:
-        return _cached_config().environment_for(target)
-    except Exception:  # noqa: BLE001 — an unreadable config means "undeclared"
-        return ""
-
-
-# Keyed by skill: the registry used to be one process-global slot, and a
-# bare `import` of any sibling's server module replaced whichever resolver
-# was there -- measured turning a freeze-production-writes rule from DENY
-# to ALLOW. Keyed, a resolver only ever answers for its own skill, so
-# registering at import time is safe again.
-set_environment_resolver(_environment_for, skill=skill_name(__name__))
-
+# The environment resolver lives in policy_environment so the CLI registers
+# it too (its @guarded writes go through the same guard()); importing it here
+# registers it for the MCP surface.
+from vmware_vks.policy_environment import (  # noqa: F401 — imported to register the resolver, and re-exported
+    _cached_config,
+    _environment_for,
+)
 
 # ---------------------------------------------------------------------------
 # Entry point

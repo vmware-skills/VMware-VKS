@@ -170,20 +170,32 @@ def test_both_kubeconfig_tools_declare_their_result_sensitive():
 
 @pytest.mark.unit
 def test_get_tkc_kubeconfig_is_not_advertised_read_only():
-    """It creates directories and truncates a caller-chosen file.
+    """It creates directories and replaces a caller-chosen file.
 
     ``output_path='~/.kube/config'`` overwrites the user's own kubeconfig, so an
     MCP client must be told to confirm rather than auto-run it.
     """
     tools = {t.name: t for t in asyncio.run(srv.mcp.list_tools())}
     assert tools["get_tkc_kubeconfig"].annotations.readOnlyHint is False
-    # And the neighbour that genuinely writes nothing locally stays a read.
-    assert tools["get_supervisor_kubeconfig"].annotations.readOnlyHint is True
+    # This line used to assert the Supervisor neighbour "genuinely writes
+    # nothing locally" and so stays a read. That stopped being true when it
+    # gained output_path, and the assertion kept the stale annotation pinned in
+    # place. Both tools are credential access now; see
+    # test_kubeconfig_is_credential_access.py.
+    assert tools["get_supervisor_kubeconfig"].annotations.readOnlyHint is False
 
 
 #: Helpers whose whole job is to put bytes on this machine's disk.
 _FS_WRITERS = frozenset(
-    {"_write_kubeconfig_file", "write_kubeconfig", "write_text", "write_bytes"}
+    {
+        "_write_kubeconfig_file",
+        "write_kubeconfig",
+        # Missing until 2026-09-11, so the scan below could not see that
+        # get_supervisor_kubeconfig (then readOnlyHint=true) writes a file.
+        "write_supervisor_kubeconfig",
+        "write_text",
+        "write_bytes",
+    }
 )
 
 
@@ -214,6 +226,9 @@ def test_the_filesystem_writer_scan_actually_detects_one():
     the scan below has quietly become a check that can never fail.
     """
     assert _fs_writers_called_by("get_tkc_kubeconfig") == ["write_kubeconfig"]
+    assert _fs_writers_called_by("get_supervisor_kubeconfig") == [
+        "write_supervisor_kubeconfig"
+    ]
 
 
 @pytest.mark.unit

@@ -13,6 +13,9 @@ from rich.table import Table
 from vmware_policy import PolicyDenied, guarded
 
 from vmware_vks.errors import VksApiError
+# Registers this skill's environment resolver, so environment-scoped policy
+# rules apply to @guarded CLI writes exactly as they do to MCP tools.
+import vmware_vks.policy_environment  # noqa: F401 — imported to register the resolver; do not remove
 
 
 def _harden_console_encoding() -> None:
@@ -350,7 +353,7 @@ def namespace_get(
 
 @namespace_app.command("create")
 @_cli_errors
-@guarded(risk_level='medium')
+@guarded("create_namespace", risk_level="medium")
 def namespace_create(
     name: str = typer.Argument(...),
     cluster_id: str = typer.Option(..., "--cluster", help="Supervisor cluster MoRef"),
@@ -390,7 +393,7 @@ def namespace_create(
 
 @namespace_app.command("update")
 @_cli_errors
-@guarded(risk_level='medium')
+@guarded("update_namespace", risk_level="medium")
 def namespace_update(
     name: str = typer.Argument(...),
     cpu_limit: Optional[int] = typer.Option(None, "--cpu"),
@@ -416,7 +419,7 @@ def namespace_update(
 
 @namespace_app.command("delete")
 @_cli_errors
-@guarded(risk_level='high')
+@guarded("delete_namespace", risk_level="high")
 def namespace_delete(
     name: str = typer.Argument(...),
     force: bool = typer.Option(False, "--force", help="Skip interactive confirm"),
@@ -527,7 +530,7 @@ def tkc_versions(
 
 @tkc_app.command("create")
 @_cli_errors
-@guarded(risk_level='medium')
+@guarded("create_tkc_cluster", risk_level="medium")
 def tkc_create(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -597,7 +600,7 @@ def tkc_create(
 
 @tkc_app.command("scale")
 @_cli_errors
-@guarded(risk_level='medium')
+@guarded("scale_tkc_cluster", risk_level="medium")
 def tkc_scale(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -629,7 +632,7 @@ def tkc_scale(
 
 @tkc_app.command("upgrade")
 @_cli_errors
-@guarded(risk_level='medium')
+@guarded("upgrade_tkc_cluster", risk_level="medium")
 def tkc_upgrade(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -656,7 +659,7 @@ def tkc_upgrade(
 
 @tkc_app.command("delete")
 @_cli_errors
-@guarded(risk_level='high')
+@guarded("delete_tkc_cluster", risk_level="high")
 def tkc_delete(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -775,39 +778,65 @@ def vm_nics(
 # ---------------------------------------------------------------------------
 
 
+def _emit_kubeconfig(kubeconfig: str) -> None:
+    """Print a kubeconfig byte-for-byte.
+
+    Not ``console.print``: Rich folds long words at the console width (80 when
+    stdout is not a terminal) and parses ``[...]`` as markup, so
+    ``kubeconfig supervisor -n ns > kc.yaml`` used to write a kubeconfig whose
+    bearer token had newlines inserted into it — unusable, and the only CLI
+    route to the Supervisor kubeconfig at the time.
+    """
+    typer.echo(kubeconfig, nl=not kubeconfig.endswith("\n"))
+
+
+# Credential access: both commands return a live Supervisor bearer token.
+# Guarded (policy + one audit row, token never recorded) at the same risk level
+# as the matching MCP tools; prefer -o so the token is not printed.
 @kubeconfig_app.command("supervisor")
 @_cli_errors
+@guarded("get_supervisor_kubeconfig", risk_level="medium")
 def kubeconfig_supervisor(
     namespace: str = typer.Option(..., "-n", "--namespace"),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o",
+        help="Write to this file (owner-only, 0600) instead of printing the token.",
+    ),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
-    """Get Supervisor kubeconfig."""
-    from vmware_vks.ops.kubeconfig import get_supervisor_kubeconfig_str
+    """Get Supervisor kubeconfig (contains a bearer token; prefer -o)."""
+    from vmware_vks.ops.kubeconfig import write_supervisor_kubeconfig
 
     si = _get_si(target)
-    kc = get_supervisor_kubeconfig_str(si, namespace)
-    console.print(kc)
+    result = write_supervisor_kubeconfig(si, namespace, output_path=output)
+    if output:
+        console.print(f"[green]Written to {result['written_to']}[/green]")
+    else:
+        _emit_kubeconfig(result.get("kubeconfig", ""))
 
 
 @kubeconfig_app.command("get")
 @_cli_errors
-@guarded(risk_level='low')
+@guarded("get_tkc_kubeconfig", risk_level="medium")
 def kubeconfig_get(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o"),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o",
+        help="Write to this file (owner-only, 0600) instead of printing the token.",
+    ),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
-    """Get TKC cluster kubeconfig."""
+    """Get TKC cluster kubeconfig (contains a bearer token; prefer -o)."""
 
     from vmware_vks.ops.kubeconfig import write_kubeconfig
 
     si = _get_si(target)
     result = write_kubeconfig(si, name, namespace, output_path=output)
     if output:
-        console.print(f"[green]Written to {output}[/green]")
+        console.print(f"[green]Written to {result['written_to']}[/green]")
     else:
-        console.print(result.get("kubeconfig", ""))
+        _emit_kubeconfig(result.get("kubeconfig", ""))
 
 
 # ---------------------------------------------------------------------------

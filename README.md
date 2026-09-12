@@ -96,7 +96,7 @@ pip install --no-index --find-links dist vmware-vks
 2. List available K8s versions → `vmware-vks tkc versions -n dev`
 3. Create namespace (if needed) → `vmware-vks namespace create dev --cluster domain-c1 --storage-policy <policy-id> --cpu 16000 --memory 32768 --apply` (get the policy ID from `vmware-vks supervisor storage-policies`)
 4. Create TKC cluster → `vmware-vks tkc create dev-cluster -n dev --version v1.28.4+vmware.1 --control-plane 1 --workers 3 --vm-class best-effort-large --apply`
-5. Get kubeconfig → `vmware-vks kubeconfig get dev-cluster -n dev`
+5. Get kubeconfig (credential; only when you need cluster access) → `vmware-vks kubeconfig get dev-cluster -n dev -o ./kubeconfig` — writes an owner-only file instead of printing the token
 
 ### Scale Workers for Load Testing
 
@@ -148,8 +148,8 @@ pip install --no-index --find-links dist vmware-vks
 
 | Tool | Description | Type |
 |------|-------------|------|
-| `get_supervisor_kubeconfig` | Supervisor kubeconfig YAML | Read |
-| `get_tkc_kubeconfig` | TKC kubeconfig (stdout or file) | Write |
+| `get_supervisor_kubeconfig` | Supervisor kubeconfig — credential (bearer token); inline or owner-only file | Write |
+| `get_tkc_kubeconfig` | TKC kubeconfig — credential (bearer token); inline or owner-only file | Write |
 | `get_harbor_info` | Embedded Harbor registry info (id, cluster, version, URL, health, storage used) | Read |
 | `list_namespace_storage_usage` | PVC list and capacity stats | Read |
 
@@ -209,7 +209,7 @@ vmware-vks tkc upgrade <name> -n <namespace> --version <v>
 vmware-vks tkc delete <name> -n <namespace>
 
 # Kubeconfig
-vmware-vks kubeconfig supervisor -n <namespace>
+vmware-vks kubeconfig supervisor -n <namespace> [-o <path>]
 vmware-vks kubeconfig get <cluster-name> -n <namespace> [-o <path>]
 
 # Harbor & Storage
@@ -267,12 +267,13 @@ vmware-vks-mcp
 
 | Feature | Description |
 |---------|-------------|
-| Read-heavy | 15/23 tools are read-only |
+| Read-heavy | 14/23 tools are read-only |
 | Dry-run default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` all default to `dry_run=True` |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |
 | Credential safety | Passwords only from environment variables (`.env` file), never in `config.yaml` |
-| In-memory kubeconfig | Supervisor/TKC kubeconfig (with vCenter session bearer token) is built as an in-memory dict and loaded via `load_kube_config_from_dict()` — never written to a temp file on disk (v1.5.18+) |
+| In-memory kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig (with the Supervisor bearer token) is built as an in-memory dict and loaded via `load_kube_config_from_dict()` — never written to a temp file on disk (v1.5.18+) |
+| Kubeconfig is credential access | `get_supervisor_kubeconfig` / `get_tkc_kubeconfig` return a bearer token valid for hours: annotated `readOnlyHint: false` (clients ask first), `risk_level: medium`, audit row redacts the kubeconfig. Run only on explicit request; export with `output_path` / `-o` to an owner-only (0600) file |
 | Audit logging | All write operations logged to `~/.vmware-vks/audit.log` |
 | stdio transport | No network listener; MCP runs over stdio only |
 

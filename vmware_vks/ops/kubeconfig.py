@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -30,6 +31,7 @@ def build_tkc_kubeconfig(
     the bearer token in memory.
     """
     import kubernetes as k8s
+
     from vmware_vks.k8s_connection import get_k8s_client, translate_k8s_error
     from vmware_vks.ops.tkc import _resolve_tkc_version
 
@@ -98,11 +100,20 @@ def get_tkc_kubeconfig_str(si: ServiceInstance, cluster_name: str, namespace: st
 def _write_kubeconfig_file(output_path: Path, content: str) -> Path:
     """Write a token-bearing kubeconfig to ``output_path`` securely.
 
-    The file carries a live session token, so:
-      * refuse to follow a symlink at the target (prevents redirecting the
-        token to an attacker-controlled location),
-      * create with O_NOFOLLOW and mode 0600 so it is never briefly readable
-        by other users and the final component cannot be a symlink.
+    The file carries a live Supervisor bearer token, so:
+      * refuse a symlink at the target (prevents redirecting the token to an
+        attacker-controlled location);
+      * write a *new* file — created O_CREAT|O_EXCL, mode 0600, in the target's
+        directory — fsync it, then ``os.replace`` it over the target.
+
+    Why not open the target itself: an existing kubeconfig opened with O_TRUNC
+    and narrowed with fchmod keeps its inode, and fchmod does not revoke
+    descriptors already open on it — whoever had the old 0644 file open read
+    the token as it landed. And truncating first meant any later failure
+    (fchmod refused, disk full) had already destroyed the user's file. A rename
+    leaves old descriptors on the old inode and the target untouched until the
+    new content is complete. ``os.replace`` also replaces a symlink rather than
+    following it, so a link swapped in after the check cannot redirect the token.
 
     The user/agent may still choose any directory they have write access to —
     that is the function's purpose; we only block symlink redirection.
@@ -119,21 +130,68 @@ def _write_kubeconfig_file(output_path: Path, content: str) -> Path:
 
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
+    # mkstemp: O_CREAT|O_EXCL (and O_NOFOLLOW where available), mode 0600.
     try:
-        fd = os.open(str(target), flags, 0o600)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=target.parent, prefix=f".{target.name}.", suffix=".tmp"
+        )
     except OSError as e:
         raise ValueError(
             f"Cannot write kubeconfig to {output_path}: {e}. Check that the "
             f"parent directory exists and is writable, then retry with a "
             f"writable --output path."
         ) from e
-    with os.fdopen(fd, "w") as fh:
-        fh.write(content)
-    target.chmod(0o600)
+
+    tmp = Path(tmp_name)
+    try:
+        _write_owner_only(fd, content, output_path)
+        os.replace(tmp, target)
+    except OSError as e:
+        _discard(tmp)
+        raise ValueError(
+            f"Cannot write kubeconfig to {output_path}: {e}. Any existing "
+            f"file there was left unchanged. Check that the directory is "
+            f"writable and has free space, then retry."
+        ) from e
+    except BaseException:
+        _discard(tmp)
+        raise
     return target
+
+
+def _write_owner_only(fd: int, content: str, output_path: Path) -> None:
+    """Pin ``fd`` to 0600, write ``content``, and fsync it. Always closes ``fd``.
+
+    mkstemp already asks for 0600, but the umask can narrow it further; fchmod
+    makes the result exactly owner read/write. On platforms without fchmod
+    (Windows) access is governed by the directory's ACL, not mode bits.
+    """
+    try:
+        if hasattr(os, "fchmod"):
+            try:
+                os.fchmod(fd, 0o600)
+            except OSError as e:
+                raise ValueError(
+                    f"Refusing to write kubeconfig to {output_path}: cannot make "
+                    f"it owner-only ({e}), so the token would be readable by "
+                    f"others. Pass an --output path in a directory you own."
+                ) from e
+        fh = os.fdopen(fd, "w", encoding="utf-8")
+    except BaseException:
+        os.close(fd)
+        raise
+    with fh:
+        fh.write(content)
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _discard(tmp: Path) -> None:
+    """Remove a half-written temp file; a failure here must not mask the cause."""
+    try:
+        tmp.unlink(missing_ok=True)
+    except OSError as e:
+        _log.warning("Could not remove temporary kubeconfig %s: %s", tmp, e)
 
 
 def write_supervisor_kubeconfig(

@@ -27,8 +27,8 @@ in through — and inside the CLI itself, ``vmware-vks check`` and
 ``vmware-vks preflight-auth`` disagreed with each other about which Supervisor
 they were validating.
 
-``VMWARE_VKS_CONFIG`` is this skill's advertised ``primaryEnv`` in its OpenClaw
-metadata, so the surfaces that honoured it were right and ``load_config`` was
+``VMWARE_VKS_CONFIG`` is declared in this skill's OpenClaw
+metadata (``optional.env``), so the surfaces that honoured it were right and ``load_config`` was
 the one that was wrong.
 
 The precedence now lives in exactly one function, ``resolve_config_path``, that

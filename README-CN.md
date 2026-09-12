@@ -94,7 +94,7 @@ pip install --no-index --find-links dist vmware-vks
 2. 查看可用 K8s 版本 → `vmware-vks tkc versions -n dev`
 3. 创建命名空间（如需）→ `vmware-vks namespace create dev --cluster domain-c1 --storage-policy <策略ID> --cpu 16000 --memory 32768 --apply`（策略 ID 通过 `vmware-vks supervisor storage-policies` 获取）
 4. 创建 TKC 集群 → `vmware-vks tkc create dev-cluster -n dev --version v1.28.4+vmware.1 --control-plane 1 --workers 3 --vm-class best-effort-large --apply`
-5. 获取 kubeconfig → `vmware-vks kubeconfig get dev-cluster -n dev`
+5. 获取 kubeconfig（凭据；仅在需要访问集群时）→ `vmware-vks kubeconfig get dev-cluster -n dev -o ./kubeconfig` — 写入仅属主可读的文件，而不是把 token 打印出来
 
 ### 扩容工作节点（压测场景）
 
@@ -146,8 +146,8 @@ pip install --no-index --find-links dist vmware-vks
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
-| `get_supervisor_kubeconfig` | Supervisor kubeconfig YAML | 只读 |
-| `get_tkc_kubeconfig` | TKC kubeconfig（标准输出或写文件） | 写 |
+| `get_supervisor_kubeconfig` | Supervisor kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
+| `get_tkc_kubeconfig` | TKC kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
 | `get_harbor_info` | 内置 Harbor 仓库信息（ID、集群、版本、URL、健康状态、已用存储） | 只读 |
 | `list_namespace_storage_usage` | PVC 列表和容量统计 | 只读 |
 
@@ -207,7 +207,7 @@ vmware-vks tkc upgrade <名称> -n <命名空间> --version <版本>
 vmware-vks tkc delete <名称> -n <命名空间>
 
 # Kubeconfig
-vmware-vks kubeconfig supervisor -n <命名空间>
+vmware-vks kubeconfig supervisor -n <命名空间> [-o <文件路径>]
 vmware-vks kubeconfig get <集群名称> -n <命名空间> [-o <文件路径>]
 
 # Harbor 和存储
@@ -257,12 +257,13 @@ vmware-vks-mcp
 
 | 特性 | 说明 |
 |------|------|
-| 以只读为主 | 23 个工具中 15 个为只读 |
+| 以只读为主 | 23 个工具中 14 个为只读 |
 | 默认 dry-run | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 均默认 `dry_run=True` |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
 | 凭据安全 | 密码仅从环境变量（`.env` 文件）加载，不写入 `config.yaml` |
-| Kubeconfig 内存构建 | Supervisor/TKC kubeconfig（含 vCenter 会话 bearer token）以内存 dict 形式构建并通过 `load_kube_config_from_dict()` 加载 — 不会写入磁盘临时文件（v1.5.18+） |
+| Kubeconfig 内存构建 | 本 skill 自身调用 API 时，Supervisor/TKC kubeconfig（含 Supervisor bearer token）以内存 dict 形式构建并通过 `load_kube_config_from_dict()` 加载 — 不会写入磁盘临时文件（v1.5.18+） |
+| Kubeconfig 属于凭据访问 | `get_supervisor_kubeconfig` / `get_tkc_kubeconfig` 返回有效期以小时计的 bearer token：标注 `readOnlyHint: false`（客户端会先询问）、`risk_level: medium`，审计记录中 kubeconfig 被脱敏。仅在用户明确要求时调用；用 `output_path` / `-o` 导出到仅属主可读（0600）的文件 |
 | 审计日志 | 所有写操作记录到 `~/.vmware-vks/audit.log` |
 | stdio 传输 | 无网络监听端口；MCP 通过 stdio 运行 |
 
