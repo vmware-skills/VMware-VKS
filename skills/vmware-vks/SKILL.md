@@ -90,8 +90,8 @@ vmware-vks check
 **Steps**:
 1. `vmware-vks supervisor check --target prod` → must pass
 2. `vmware-vks tkc versions -n <ns>` → pick a non-EOL TKR
-3. (If new namespace) `vmware-vks namespace create dev --storage-policy <policy> --cpu <enough-for-cp+workers> --apply --dry-run` then real
-4. `vmware-vks tkc create dev-cluster -n dev --version <tkr> --control-plane 1 --workers 3 --vm-class best-effort-large --apply --dry-run` then real
+3. (If new namespace) `vmware-vks namespace create dev --storage-policy <policy> --cpu <enough-for-cp+workers>` (a dry run by default), then the same with `--apply`
+4. `vmware-vks tkc create dev-cluster -n dev --version <tkr> --control-plane 1 --workers 3 --vm-class best-effort-large` (a dry run by default), then the same with `--apply`
 5. Wait for `phase=running` (typically 10-15 min); do not assume success on apply return
 6. Only if the user asked for cluster access: `vmware-vks kubeconfig get dev-cluster -n dev -o ./kubeconfig` — writes an owner-only file; report the path, never paste the token into the agent context
 
@@ -197,7 +197,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 
 ```bash
 # Supervisor
-vmware-vks check [--target <name>]
+vmware-vks check [--config <path>]
 vmware-vks preflight-auth [--target <name>]   # live-validate POST /wcp/login (issue #13)
 vmware-vks supervisor status <cluster-id> [--target <name>]
 vmware-vks supervisor storage-policies [--target <name>]
