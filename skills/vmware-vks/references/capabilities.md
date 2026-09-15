@@ -87,7 +87,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | Namespace Delete Guard | Rejects if TKC clusters exist inside -- prevents orphaned clusters |
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |
-| Audit Trail | All write operations logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy) plus a local JSON-Lines mirror at `~/.vmware-vks/audit.log`, with timestamp, target, operation, parameters, result, user |
+| Audit Trail | Every MCP call and every CLI command that reaches vCenter or the Supervisor logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy); write operations also mirrored to `~/.vmware-vks/audit.log`, with timestamp, target, operation, parameters, result, user |
 | Read-Only Majority | 14/23 tools are read-only |
 | SSL Support | `verify_ssl: false` supported for self-signed vCenter certs (enterprise standard) |
 | In-Memory Kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig is constructed as a Python dict and loaded via `load_kube_config_from_dict()`; the Supervisor bearer token is never written to a temp file (the pre-v1.5.18 TOCTOU window is gone). Only an explicit export (`output_path` / `-o <path>`) writes it, to an owner-only file. |

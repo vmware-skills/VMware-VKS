@@ -8,13 +8,13 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS#v1.10.0
+npx skills add vmware-skills/VMware-VKS#v1.10.1
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install @zw008/vmware-vks --version 1.10.0
+clawhub install @zw008/vmware-vks --version 1.10.1
 
 # Via PyPI (recommended for version pinning)
-uv tool install vmware-vks==1.10.0
+uv tool install vmware-vks==1.10.1
 ```
 
 ### Claude Code
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone --branch v1.10.0 https://github.com/vmware-skills/VMware-VKS.git
+git clone --branch v1.10.1 https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -58,7 +58,7 @@ uv pip install -e .
 
 ```bash
 # 1. Install from PyPI
-uv tool install vmware-vks==1.10.0
+uv tool install vmware-vks==1.10.1
 
 # 2. Configure
 mkdir -p ~/.vmware-vks

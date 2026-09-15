@@ -13,7 +13,7 @@ allowed-tools:
   - Bash
 metadata: {"openclaw":{"requires":{"anyBins":["vmware-vks","uvx"]},"optional":{"env":["VMWARE_VKS_CONFIG","VMWARE_VKS_<TARGET>_PASSWORD","VMWARE_VKS_<TARGET>_USERNAME","VMWARE_AUDIT_APPROVED_BY"],"bins":["vmware-policy"]},"homepage":"https://github.com/vmware-skills/VMware-VKS","emoji":"☸️","os":["macos","linux"]}}
 compatibility: >
-  vmware-policy auto-installed as Python dependency (provides @vmware_tool decorator and audit logging). All write operations audited to ~/.vmware/audit.db (SQLite, via vmware-policy) with a local JSON-Lines mirror at ~/.vmware-vks/audit.log.
+  vmware-policy auto-installed as Python dependency (provides @vmware_tool decorator and audit logging). MCP tool calls and remote CLI commands audited to ~/.vmware/audit.db (SQLite, via vmware-policy); write operations also mirrored to ~/.vmware-vks/audit.log.
   Credentials: Each vCenter target requires a per-target password env var in ~/.vmware-vks/.env following the pattern VMWARE_VKS_<TARGET_NAME_UPPER>_PASSWORD (e.g., target "vcenter-01" → VMWARE_VKS_VCENTER_01_PASSWORD). Passwords are never logged, never echoed, never included in audit entries. get_supervisor_kubeconfig and get_tkc_kubeconfig are credential access, not reads: the kubeconfig embeds a Supervisor bearer token (JWT from /wcp/login) that acts as the configured vCenter account until it expires (typically hours, independent of this process). Both are annotated readOnlyHint=false so MCP clients ask before running them; call them only on explicit user request and write the result to an owner-only (0600) file with output_path / -o rather than printing it. The audit log records the call but redacts the returned kubeconfig.
 ---
 
@@ -40,7 +40,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==1.10.0
+uv tool install vmware-vks==1.10.1
 vmware-vks check
 ```
 
@@ -277,7 +277,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==1.10.0
+uv tool install vmware-vks==1.10.1
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```
@@ -289,7 +289,7 @@ vmware-vks init
 ## Audit & Safety
 
 Operations are audited via vmware-policy:
-- Every MCP tool call, and every state-changing or credential-returning CLI command (`@guarded`), is logged to `~/.vmware/audit.db` (SQLite). The seven namespace/TKC write operations are also mirrored to `~/.vmware-vks/audit.log` (JSON Lines)
+- Every MCP tool call, and every CLI command that reaches vCenter or the Supervisor (`@guarded` writes and credential reads, `@audited` reads), is logged to `~/.vmware/audit.db` (SQLite). The seven namespace/TKC write operations are also mirrored to `~/.vmware-vks/audit.log` (JSON Lines)
 - Policy rules enforced via `~/.vmware/rules.yaml` (deny rules, maintenance windows, risk levels)
 - Risk classification: each tool tagged as low/medium/high/critical
 - View recent operations: `vmware-audit log --last 20`

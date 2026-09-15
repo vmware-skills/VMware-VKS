@@ -10,7 +10,7 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.table import Table
-from vmware_policy import PolicyDenied, guarded
+from vmware_policy import PolicyDenied, audited, cli_local, guarded
 
 from vmware_vks.errors import VksApiError
 # Registers this skill's environment resolver, so environment-scoped policy
@@ -58,6 +58,7 @@ app.add_typer(vm_app, name="vm")
 
 
 @app.command("mcp")
+@cli_local("starts the MCP server; its tools audit themselves")
 def mcp_cmd() -> None:
     """Start the MCP server (stdio transport).
 
@@ -200,6 +201,7 @@ def _double_confirm(resource: str, resource_type: str = "resource") -> bool:
 
 
 @app.command("init")
+@audited("init")
 def cmd_init(
     force: bool = typer.Option(
         False, "--force", help="Overwrite an existing config without prompting first"
@@ -226,6 +228,7 @@ def cmd_init(
 # two can never drift into meaning different things.
 @app.command("doctor")
 @app.command("check")
+@audited("check_vks_compatibility")
 def cmd_check(
     config: Optional[Path] = typer.Option(None, help="Path to config.yaml"),
 ):
@@ -238,6 +241,7 @@ def cmd_check(
 
 @app.command("preflight-auth")
 @_cli_errors
+@audited("preflight_auth")
 def cmd_preflight_auth(
     target: Optional[str] = typer.Option(
         None, "-t", "--target", help="Target name (default: all configured targets)"
@@ -288,6 +292,7 @@ def cmd_preflight_auth(
 
 @supervisor_app.command("status")
 @_cli_errors
+@audited("get_supervisor_status")
 def supervisor_status(
     cluster_id: str = typer.Argument(
         ..., help="Compute cluster MoRef (e.g. domain-c1)"
@@ -305,6 +310,7 @@ def supervisor_status(
 
 @supervisor_app.command("storage-policies")
 @_cli_errors
+@audited("list_supervisor_storage_policies")
 def supervisor_storage_policies(
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
@@ -321,6 +327,7 @@ def supervisor_storage_policies(
 
 @namespace_app.command("list")
 @_cli_errors
+@audited("list_namespaces")
 def namespace_list(
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
@@ -337,6 +344,7 @@ def namespace_list(
 
 @namespace_app.command("get")
 @_cli_errors
+@audited("get_namespace")
 def namespace_get(
     name: str = typer.Argument(...),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -451,6 +459,7 @@ def namespace_delete(
 
 @namespace_app.command("vm-classes")
 @_cli_errors
+@audited("list_vm_classes")
 def namespace_vm_classes(
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
@@ -474,6 +483,7 @@ def namespace_vm_classes(
 
 @tkc_app.command("list")
 @_cli_errors
+@audited("list_tkc_clusters")
 def tkc_list(
     namespace: Optional[str] = typer.Option(None, "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -492,6 +502,7 @@ def tkc_list(
 
 @tkc_app.command("get")
 @_cli_errors
+@audited("get_tkc_cluster")
 def tkc_get(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -509,6 +520,7 @@ def tkc_get(
 
 @tkc_app.command("versions")
 @_cli_errors
+@audited("get_tkc_available_versions")
 def tkc_versions(
     namespace: str = typer.Option(..., "-n", "--namespace", help="vSphere Namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -714,6 +726,7 @@ def tkc_delete(
 
 @vm_app.command("snapshots")
 @_cli_errors
+@audited("list_vm_snapshots")
 def vm_snapshots(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -734,6 +747,7 @@ def vm_snapshots(
 
 @vm_app.command("groups")
 @_cli_errors
+@audited("list_vm_groups")
 def vm_groups(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -756,6 +770,7 @@ def vm_groups(
 
 @vm_app.command("nics")
 @_cli_errors
+@audited("list_vm_network_interfaces")
 def vm_nics(
     vm_name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),
@@ -846,6 +861,7 @@ def kubeconfig_get(
 
 @app.command("harbor")
 @_cli_errors
+@audited("get_harbor_info")
 def harbor_info(
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
@@ -866,6 +882,7 @@ def harbor_info(
 
 @app.command("storage")
 @_cli_errors
+@audited("list_namespace_storage_usage")
 def storage_usage(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
