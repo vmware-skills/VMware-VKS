@@ -11,7 +11,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "vmware-vks==1.10.1",
+        "vmware-vks==1.10.2",
         "vmware-vks-mcp"
       ]
     }

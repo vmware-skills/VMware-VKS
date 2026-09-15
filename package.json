@@ -1,6 +1,6 @@
 {
   "name": "@zw008/vmware-vks",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "description": "vSphere with Tanzu (VKS): Namespace and TanzuKubernetesCluster lifecycle. Requires vSphere 8.x+.",
   "private": true,
   "license": "MIT",

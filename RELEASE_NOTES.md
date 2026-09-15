@@ -1,3 +1,18 @@
+## v1.10.2 — stopping the MCP server logs out its vCenter session
+
+Measured in real Claude Code conversations against the lab vCenter 8.0.3 / ESXi 8.0.3 on 2026-09-15:
+Claude Code stops a stdio MCP server with SIGINT and then SIGTERM about a millisecond later, with stdin still
+open. Python's default SIGTERM ended the server before `atexit`, so the vSphere logout the connection layer
+registers never ran and every conversation left its session open — 13 root sessions on one ESXi host and 11
+Administrator sessions on vCenter in about eleven minutes.
+
+**The server now logs out when it is stopped.** The first stop signal ignores the rest, runs the `atexit`
+callbacks (the `Disconnect`), and exits with status 128 + signal. Raising `SystemExit` from the handler was tried
+first and is not enough: the interpreter then waits on the thread reading stdin and hangs without logging out.
+The new test starts the real server with stdin held open, completes the MCP handshake and sends the same two
+signals; it failed on the `SystemExit` version. After the change, conversations against the lab left no session
+behind.
+
 ## v1.10.1 — CLI reads are audited
 
 No CLI read wrote `~/.vmware/audit.db` — only MCP calls and CLI writes (`@guarded`) did. A live
