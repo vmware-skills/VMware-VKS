@@ -1,3 +1,20 @@
+## v1.10.3 — a stopped MCP server exits within five seconds, even if its logout hangs
+
+A correction to 1.10.2, from an independent review on 2026-09-15. 1.10.2 made the server log out when Claude
+Code stops it: the first stop signal ignored further stop signals and ran the `atexit` logout. The logout had no
+time limit. pyVmomi connects with `httpConnectionTimeout=None`, so a logout to a vCenter that stopped answering,
+or one waiting on the SOAP connection lock a tool call held when the signal arrived, kept the server running and
+deaf to every further stop signal until something sent SIGKILL. Before 1.10.2, SIGTERM at least ended it.
+
+* The logout now runs on a worker thread and gets 5 seconds. If it has not finished, the server writes one line
+  to stderr without blocking (a full pipe cannot hold the exit) and exits with 128 + signal anyway; vCenter or
+  ESXi ends that session when it idles out.
+* New test: the real server with stdin held open, an `atexit` callback that blocks for ten minutes, then SIGINT
+  and SIGTERM. The server must exit within 15 seconds and say it gave up on the logout. It failed on 1.10.2.
+* Correction to the 1.10.2 notes: "conversations against the lab left no session behind" was not measured for
+  this server. It is now, on this code: a conversation that called `check_vks_compatibility` and
+  `list_namespaces` against vCenter 8.0.3 left no session behind.
+
 ## v1.10.2 — stopping the MCP server logs out its vCenter session
 
 Measured in real Claude Code conversations against the lab vCenter 8.0.3 / ESXi 8.0.3 on 2026-09-15:
