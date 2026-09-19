@@ -8,13 +8,13 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS#v1.10.3
+npx skills add vmware-skills/VMware-VKS#v1.11.0
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install @zw008/vmware-vks --version 1.10.3
+clawhub install @zw008/vmware-vks --version 1.11.0
 
 # Via PyPI (recommended for version pinning)
-uv tool install vmware-vks==1.10.3
+uv tool install vmware-vks==1.11.0
 ```
 
 ### Claude Code
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone --branch v1.10.3 https://github.com/vmware-skills/VMware-VKS.git
+git clone --branch v1.11.0 https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -58,7 +58,7 @@ uv pip install -e .
 
 ```bash
 # 1. Install from PyPI
-uv tool install vmware-vks==1.10.3
+uv tool install vmware-vks==1.11.0
 
 # 2. Configure
 mkdir -p ~/.vmware-vks
@@ -174,7 +174,7 @@ This skill follows a defense-in-depth approach with six security properties:
 
 5. **Prompt Injection Protection** -- All tool inputs are passed as typed Python parameters (`str`, `int`, `bool`), never interpolated into shell commands. No `eval`, `exec`, or subprocess calls with user-controlled data.
 
-6. **Least Privilege** -- 14/23 tools are read-only. All write operations default to `dry_run=True` where applicable. Destructive operations (`delete_namespace`, `delete_tkc_cluster`) require explicit `confirmed=True` and pass through safety guards that cannot be bypassed without `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
+6. **Least Privilege** -- 14/23 tools are read-only. `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` preview by default: without `confirm=True` they change nothing and return the blast radius, and `confirm=True` is refused while a blocker stands or part of the blast radius could not be read. The running-workload guard on `delete_tkc_cluster` can only be skipped with `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
 
 ## Supported AI Platforms
 

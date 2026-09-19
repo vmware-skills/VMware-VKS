@@ -125,7 +125,7 @@ pip install --no-index --find-links dist vmware-vks
 |------|------|------|
 | `list_namespaces` | 所有 vSphere 命名空间及状态 | 只读 |
 | `get_namespace` | 命名空间详情（配额、存储、角色） | 只读 |
-| `create_namespace` | 创建命名空间（默认 dry-run 预览） | 写操作 |
+| `create_namespace` | 创建命名空间；默认只预览（`confirm=True` 才执行） | 写操作 |
 | `update_namespace` | 修改配额和存储策略 | 写操作 |
 | `delete_namespace` | 删除（含 TKC 保护，存在集群时拒绝） | 写操作 |
 | `list_vm_classes` | TKC 节点规格可用的 VM 类 | 只读 |
@@ -137,7 +137,7 @@ pip install --no-index --find-links dist vmware-vks
 | `list_tkc_clusters` | TanzuKubernetesCluster 列表及状态 | 只读 |
 | `get_tkc_cluster` | 集群详情（节点、健康、条件） | 只读 |
 | `get_tkc_available_versions` | Supervisor 上支持的 K8s 版本 | 只读 |
-| `create_tkc_cluster` | 创建 TKC（YAML 计划 + 默认 dry-run） | 写操作 |
+| `create_tkc_cluster` | 创建 TKC；默认只预览 YAML 计划（`confirm=True` 才执行） | 写操作 |
 | `scale_tkc_cluster` | 调整工作节点数量 | 写操作 |
 | `upgrade_tkc_cluster` | 升级 K8s 版本 | 写操作 |
 | `delete_tkc_cluster` | 删除（含工作负载保护） | 写操作 |
@@ -258,7 +258,7 @@ vmware-vks-mcp
 | 特性 | 说明 |
 |------|------|
 | 以只读为主 | 23 个工具中 14 个为只读 |
-| 默认 dry-run | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 均默认 `dry_run=True` |
+| 默认只预览 | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 接受 `confirm`（默认 `False`）：不带它的调用不做任何变更，只返回 `blast_radius` — 将创建什么，或删除会销毁的 TKC 集群、VM、PVC、节点与工作负载。存在阻断项或影响范围有任何部分读不到时，`confirm=True` 会被拒绝。`confirmed` / `dry_run` 为已弃用的别名 |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
 | 凭据安全 | 密码仅从环境变量（`.env` 文件）加载，不写入 `config.yaml` |

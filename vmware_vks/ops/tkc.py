@@ -291,6 +291,66 @@ def get_tkc_cluster(si: ServiceInstance, name: str, namespace: str) -> dict:
         api.api_client.close()
 
 
+_AUTOSCALER_MIN = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size"
+_AUTOSCALER_MAX = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size"
+
+
+def _int_or_none(value: object) -> int | None:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _worker_pool(pool: dict) -> dict:
+    """One ClusterClass worker pool: its replicas, or its autoscaler range."""
+    entry = {"name": sanitize(str(pool.get("name", ""))), "replicas": pool.get("replicas")}
+    if isinstance(entry["replicas"], int):
+        return entry
+    annotations = (pool.get("metadata") or {}).get("annotations") or {}
+    return {
+        **entry,
+        "replicas": None,
+        "autoscaled": True,
+        "min_size": _int_or_none(annotations.get(_AUTOSCALER_MIN)),
+        "max_size": _int_or_none(annotations.get(_AUTOSCALER_MAX)),
+    }
+
+
+def read_tkc_topology(si: ServiceInstance, name: str, namespace: str) -> dict:
+    """The declared node topology of one cluster, every worker pool included.
+
+    Same read as :func:`get_tkc_cluster`, which reports only the first pool's
+    replicas; the delete blast radius needs all of them. A pool without a
+    ``replicas`` value counts as ``None`` (unknown), never as zero; it is the
+    normal shape of a pool the cluster-autoscaler sizes, so such a pool is
+    marked ``autoscaled`` with the min/max its annotations declare (each
+    ``None`` when absent or not an integer).
+    """
+    import kubernetes as k8s
+
+    version = _resolve_tkc_version(si, namespace)
+    api = _get_custom_objects_api(si, namespace)
+    try:
+        try:
+            raw = api.get_namespaced_custom_object(
+                group=_TKC_GROUP, version=version,
+                namespace=namespace, plural=_TKC_PLURAL, name=name,
+            )
+        except k8s.client.exceptions.ApiException as e:
+            raise _translate_api_exception(si, e, resource=name, namespace=namespace) from e
+        topology = (raw.get("spec") or {}).get("topology") or {}
+        pools = (topology.get("workers") or {}).get("machineDeployments") or []
+        return {
+            "phase": (raw.get("status") or {}).get("phase"),
+            "k8s_version": topology.get("version"),
+            "control_plane_replicas": (topology.get("controlPlane") or {}).get("replicas"),
+            "worker_pools": [_worker_pool(p) for p in pools],
+        }
+    finally:
+        api.api_client.close()
+
+
 def get_tkc_available_versions(si: ServiceInstance, namespace: str) -> dict:
     """List K8s versions available for TKC clusters on this Supervisor."""
     import kubernetes as k8s

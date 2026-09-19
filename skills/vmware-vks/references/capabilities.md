@@ -40,9 +40,9 @@ and `truncated` is always `false`.
 |-----------|-----|----------|:------------:|---------|
 | List all | `namespace list` | `list_namespaces` | -- | Status, resource usage, phase |
 | Get detail | `namespace get <name>` | `get_namespace` | -- | Quotas, storage bindings, role bindings |
-| Create | `namespace create <name> --apply` | `create_namespace` | dry_run | CPU/memory quotas, storage policy |
+| Create | `namespace create <name> --apply` | `create_namespace` | `confirm` | Preview first; CPU/memory quotas, storage policy |
 | Update quotas | `namespace update <name>` | `update_namespace` | -- | CPU (MHz), memory (MB) |
-| Delete | `namespace delete <name>` | `delete_namespace` | Double | Rejects if TKC clusters exist |
+| Delete | `namespace delete <name>` | `delete_namespace` | `confirm` | Preview lists TKC clusters, VMs, PVCs; rejects if TKC clusters exist |
 | VM classes | `namespace vm-classes` | `list_vm_classes` | -- | `id`, `cpu_count`, `memory_mb`, `gpu_count` (derived from vGPU + dynamic DirectPath I/O device lists) |
 
 ## 3. TKC Layer
@@ -52,10 +52,10 @@ and `truncated` is always `false`.
 | List clusters | `tkc list [-n ns]` | `list_tkc_clusters` | -- | Status, node counts, K8s version |
 | Get detail | `tkc get <name> -n <ns>` | `get_tkc_cluster` | -- | Nodes, versions, health conditions |
 | Available versions | `tkc versions -n <ns>` | `get_tkc_available_versions` | -- | Supported K8s versions for Supervisor |
-| Create | `tkc create <name> -n <ns> --apply` | `create_tkc_cluster` | dry_run | YAML plan -> confirm -> apply |
+| Create | `tkc create <name> -n <ns> --apply` | `create_tkc_cluster` | `confirm` | YAML plan -> confirm -> apply |
 | Scale workers | `tkc scale <name> -n <ns> --workers N` | `scale_tkc_cluster` | -- | Adjust worker node count |
 | Upgrade | `tkc upgrade <name> -n <ns> --version X.Y` | `upgrade_tkc_cluster` | -- | List available versions first |
-| Delete | `tkc delete <name> -n <ns>` | `delete_tkc_cluster` | Double | Rejects if workloads running |
+| Delete | `tkc delete <name> -n <ns>` | `delete_tkc_cluster` | `confirm` | Preview lists nodes and workloads; rejects if workloads running |
 
 ### TKC API Version Auto-Detection (v1.5.18+)
 
@@ -82,8 +82,8 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | Feature | Details |
 |---------|---------|
 | Plan -> Confirm -> Execute -> Log | Structured workflow: show YAML plan, confirm, execute, audit log |
-| Dry-Run Default | `create_namespace` and `create_tkc_cluster` default to `dry_run=True` -- returns plan without applying |
-| Double Confirmation | Delete ops require `confirmed=True` parameter |
+| Preview Default | The two creates and two deletes take `confirm` (default `False`) -- a call without it returns `blast_radius` and changes nothing |
+| Refusal When Unmeasured | `confirm=True` is refused while a blocker stands or when any part of the blast radius could not be read; `confirmed` / `dry_run` are deprecated aliases |
 | Namespace Delete Guard | Rejects if TKC clusters exist inside -- prevents orphaned clusters |
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |

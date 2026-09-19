@@ -9,7 +9,7 @@
       "expectations": [
         "Uses create_namespace with cluster_id and storage_policy",
         "Uses create_tkc_cluster with k8s_version, worker_count=3",
-        "Shows dry_run preview before actual creation"
+        "Shows the confirm=False preview (blast_radius) before actual creation"
       ]
     },
     {

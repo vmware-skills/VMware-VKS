@@ -1,3 +1,51 @@
+## v1.11.0 — the two creates and two deletes preview by default and report their blast radius
+
+HLD §7 (revised 2026-09-16), MCP surface only. The CLI (`--apply`, `--dry-run`, the typed confirmations) is
+unchanged.
+
+**Breaking for MCP callers:**
+
+* `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` take
+  `confirm: bool = False`. A call without `confirm=True` changes nothing and returns
+  `{"action": "preview", "blast_radius": {...}, "hint": ...}`. The preview response no longer carries
+  `dry_run: true`, `spec`, `yaml` or `warning` at the top level: `spec` (namespace create) and `yaml` (TKC
+  create) are inside `blast_radius`, `dry_run` and `warning` are gone, and a create preview's `action` is
+  `"preview"` rather than `"create_namespace"`.
+* `confirmed` and `dry_run` are deprecated aliases (default `None`), removed in the next minor release. The more
+  cautious reading wins: `confirmed=True, dry_run=False` still deletes and `dry_run=False` still creates, but
+  `confirmed=False` or `dry_run=True` previews even next to `confirm=True`. A response to a call that used an
+  alias carries `"deprecated": "<name> is deprecated; use confirm. Removed in the next minor release."`
+* The acting responses gain `action` (`created` / `deleted`) and `blast_radius`; their old keys stay.
+
+**What `blast_radius` reports:**
+
+* `delete_namespace`: the namespace and its `config_status`; its TKC clusters, VirtualMachines (VM Service) and
+  PVCs, as counts plus up to 16 names each.
+* `delete_tkc_cluster`: phase, Kubernetes version, control-plane nodes, worker nodes per pool and in total, and
+  the running Deployments, StatefulSets and DaemonSets. A pool with no `replicas` (sized by the cluster-autoscaler)
+  is reported as `autoscaled` with the `min_size` / `max_size` from its
+  `cluster.x-k8s.io/cluster-api-autoscaler-node-group-{min,max}-size` annotations; the total is then
+  `worker_nodes: null` plus `worker_nodes_range` (`null` when a pool declares no range). With `force=True` the
+  workload check is not run at all, as before, and the radius says so under `skipped`.
+* `create_namespace`: the spec that would be posted and whether the name is already taken.
+* `create_tkc_cluster`: node counts, VM class, storage class, the resolved Cluster API version, the YAML manifest,
+  and whether the name is already taken in the namespace.
+
+**New refusals on `confirm=True`** (returned as the usual `{"error", "hint"}` envelope, audited as a failure,
+nothing changed): the existing guards (TKC clusters inside a namespace, running workloads in a cluster), a
+namespace or cluster name that already exists, and any part of the blast radius that could not be read (a
+namespace list that is not a list counts as unread, not as "no namespaces"). An autoscaled worker pool is **not**
+a gap — deleting the cluster removes all its nodes whatever their number — so it does not block a delete; an
+unreadable workload check still does, unless `force=True`, and both workload refusals name that escape. A
+misspelt cluster name returns the usual 404 teaching error (`run list_tkc_clusters`) on preview and on
+`confirm=True`. A refusal's envelope also carries `blast_radius`. Reading the VMs in a namespace uses the VirtualMachine list on
+the pinned `vmoperator.vmware.com` group; a Supervisor without VM Service reports zero VMs, not a failure.
+
+* An undo token is now recorded only when a create really created something. The undo descriptors now pass
+  `confirm: true` instead of `confirmed` / `dry_run`.
+* Requires `vmware-policy>=1.17.0`, which audits a `confirm=False` preview as `dry_run` and redacts long
+  audit text in linear time.
+
 ## v1.10.3 — a stopped MCP server exits within five seconds, even if its logout hangs
 
 A correction to 1.10.2, from an independent review on 2026-09-15. 1.10.2 made the server log out when Claude

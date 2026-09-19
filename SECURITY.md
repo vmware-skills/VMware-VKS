@@ -29,8 +29,8 @@ Do **not** open a public GitHub issue for security vulnerabilities.
 All write operations pass through multiple safety layers:
 
 1. **`@vmware_tool` decorator** — mandatory on every MCP tool; provides pre-checks, audit logging, data sanitization, and timeout control
-2. **`dry_run=True` default** — `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` default to dry-run; the caller must explicitly set `dry_run=False` to execute. `update_namespace`, `scale_tkc_cluster` and `upgrade_tkc_cluster` have no dry-run and apply directly
-3. **`confirmed=True` required** — namespace and TKC delete operations require `confirmed=True`; without it, the operation returns a preview only
+2. **Preview by default** — `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` take `confirm` (default `False`). Without it the call changes nothing and returns `blast_radius`: the spec or YAML plan, or what a delete destroys (TKC clusters, VMs and PVCs in a namespace; node counts and running workloads of a cluster). `update_namespace`, `scale_tkc_cluster` and `upgrade_tkc_cluster` have no preview and apply directly
+3. **Refusal when unmeasured** — `confirm=True` is refused while a blocker stands, or when any part of the blast radius could not be read. The deprecated `confirmed` / `dry_run` aliases (removed in the next minor release) can only make a call more cautious than `confirm` alone
 4. **Namespace deletion guard** — namespace delete is rejected if TKC clusters still exist within the namespace
 5. **TKC deletion guard** — TKC delete checks for running workloads before proceeding
 6. **Audit logging** — every operation (read and write) is logged to `~/.vmware/audit.db` (SQLite WAL) with timestamp, user, target, operation, parameters, and result

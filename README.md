@@ -127,7 +127,7 @@ pip install --no-index --find-links dist vmware-vks
 |------|-------------|------|
 | `list_namespaces` | All vSphere Namespaces with status | Read |
 | `get_namespace` | Namespace detail (quotas, storage, roles) | Read |
-| `create_namespace` | Create Namespace with dry-run preview | Write |
+| `create_namespace` | Create Namespace; previews by default (`confirm=True` applies) | Write |
 | `update_namespace` | Modify quotas and storage policy | Write |
 | `delete_namespace` | Delete with TKC guard (rejects if clusters exist) | Write |
 | `list_vm_classes` | Available VM classes for TKC sizing | Read |
@@ -139,7 +139,7 @@ pip install --no-index --find-links dist vmware-vks
 | `list_tkc_clusters` | TanzuKubernetesCluster list with status | Read |
 | `get_tkc_cluster` | Cluster detail (nodes, health, conditions) | Read |
 | `get_tkc_available_versions` | Supported K8s versions on Supervisor | Read |
-| `create_tkc_cluster` | Create TKC with YAML plan + dry-run default | Write |
+| `create_tkc_cluster` | Create TKC; previews the YAML plan by default (`confirm=True` applies) | Write |
 | `scale_tkc_cluster` | Scale worker node count | Write |
 | `upgrade_tkc_cluster` | Upgrade K8s version | Write |
 | `delete_tkc_cluster` | Delete with workload guard | Write |
@@ -268,7 +268,7 @@ vmware-vks-mcp
 | Feature | Description |
 |---------|-------------|
 | Read-heavy | 14/23 tools are read-only |
-| Dry-run default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` all default to `dry_run=True` |
+| Preview by default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default `False`): a call without it changes nothing and returns `blast_radius` — what would be created, or the TKC clusters, VMs, PVCs, nodes and workloads a delete destroys. `confirm=True` is refused when a blocker stands or part of the blast radius could not be read. `confirmed` / `dry_run` are deprecated aliases |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |
 | Credential safety | Passwords only from environment variables (`.env` file), never in `config.yaml` |

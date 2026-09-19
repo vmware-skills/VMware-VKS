@@ -344,3 +344,33 @@ def list_vm_network_interfaces(
         )
     finally:
         api.api_client.close()
+
+
+def list_vm_names(si: ServiceInstance, namespace: str) -> dict:
+    """Names of every VirtualMachine in a namespace (read-only).
+
+    Used by the delete_namespace blast radius. Returns ``{"items": [names],
+    "vm_service": "installed" | "not installed"}``. A Supervisor that serves no
+    vmoperator version at all has no VM Service, so zero VMs is a real answer
+    there — distinct from a failed read, which raises.
+    """
+    import kubernetes as k8s
+
+    if not _discover_served_versions(si, namespace):
+        return {"items": [], "vm_service": "not installed"}
+    version = _resolve_version(si, namespace, _PLURAL_VM)
+    api = _get_custom_objects_api(si, namespace)
+    try:
+        try:
+            items = _list_all(
+                lambda **kw: api.list_namespaced_custom_object(
+                    group=_VMOP_GROUP, version=version, namespace=namespace,
+                    plural=_PLURAL_VM, **kw,
+                )
+            )
+        except k8s.client.exceptions.ApiException as e:
+            raise _translate(si, e, "(list)", namespace, "VirtualMachine") from e
+        names = [_s((it.get("metadata") or {}).get("name"), 253) for it in items]
+        return {"items": names, "vm_service": "installed"}
+    finally:
+        api.api_client.close()

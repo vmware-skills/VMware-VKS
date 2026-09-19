@@ -36,8 +36,8 @@ These are structural, so it cannot.
 
 | Guardrail you would otherwise prompt for | Now enforced by |
 |---|---|
-| "Preview a namespace or cluster creation before applying it" | **`dry_run` defaults to true.** `create_namespace` and `create_tkc_cluster` return a YAML plan for review unless you explicitly pass `dry_run=False`. Preview is the default path, not a habit the model must maintain. |
-| "Confirm before deleting anything" | **`confirmed=True` is required.** `delete_namespace` additionally refuses while TKC clusters still exist inside it, and `delete_tkc_cluster` refuses while workloads are running unless `force=True`. |
+| "Preview a namespace or cluster creation before applying it" | **`confirm` defaults to false.** `create_namespace` and `create_tkc_cluster` return `blast_radius` (spec / YAML plan) and change nothing unless `confirm=True`. Preview is the default path, not a habit the model must maintain. |
+| "Confirm before deleting anything" | **A bare delete only previews.** `delete_namespace` and `delete_tkc_cluster` return what they would destroy; `confirm=True` is refused while TKC clusters exist inside the namespace, while workloads run (unless `force=True`), or when any part of the blast radius could not be read. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_namespaces`, `list_supervisor_storage_policies` and `list_vm_classes` return `{items, returned, limit, total, truncated, hint}`, so the model reads truncation instead of guessing at it. These three read their collection in one un-paged call, so `total` is the real count and `truncated` is always `false`. |
 | "If a listing came back empty, say so rather than claiming the call failed" | Same envelope. Empty `items` with `truncated: false` means checked-and-none — a stated result, not a silence the model has to interpret. |
 | "Log every state change you make" | **The `@vmware_tool` decorator.** Every write is recorded to `~/.vmware/audit.db` before the model sees the result, and policy rules are evaluated ahead of execution. |
@@ -106,8 +106,9 @@ your agent's instruction block.
   Always pass output_path (MCP) or -o (CLI) and report the path only.
 - Storage policies are selected by Policy ID, not display name. Call
   list_supervisor_storage_policies and use the ID column.
-- Leave dry_run at its default for create_namespace and create_tkc_cluster, show
-  the returned YAML plan to the user, and only then pass dry_run=False.
+- Call create_namespace, create_tkc_cluster, delete_namespace and
+  delete_tkc_cluster without confirm first, show the returned blast_radius to
+  the user, and pass confirm=True only after they decide on what they saw.
 - Scale and upgrade operations are rejected unless the cluster is in Running
   phase. Check the phase before proposing one.
 ```
