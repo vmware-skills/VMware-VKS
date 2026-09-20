@@ -35,7 +35,7 @@ from vmware_policy import (
 )
 
 from vmware_vks import __version__
-from vmware_vks.config import ConfigError, load_config
+from vmware_vks.config import AppConfig, ConfigError, load_config
 from vmware_vks.connection import ConnectionManager
 from vmware_vks.errors import VksError
 from vmware_vks.notify.audit import AuditLogger
@@ -147,7 +147,88 @@ def _tool_error(exc: Exception) -> dict:
 
 
 
-mcp = FastMCP("VMware VKS")
+_BASE_INSTRUCTIONS = (
+    "vSphere Kubernetes Service (VKS): check VKS compatibility, manage vSphere "
+    "Namespaces and TanzuKubernetesCluster lifecycle, and fetch kubeconfigs."
+)
+
+_TARGET_RULE = (
+    " Choosing a target: every tool that reaches vSphere takes `target`. Choose it "
+    "from what the user asked — the vCenter, environment or cluster they named. "
+    "Each target is a vCenter running a Supervisor, and a Namespace or TKC exists "
+    "in exactly one of them, so a name that resolves under one target need not "
+    "exist under another. If the request does not say which, and more than one "
+    "target is configured, ask the user which one before querying rather than "
+    "reporting a Namespace or cluster as missing. A result does not name the target "
+    "it came from, so say in the answer which `target` you passed."
+)
+
+# Every listed target is a vCenter: this skill's TargetConfig has no `type` field
+# at all (config.py cannot express another kind), so the word is a constant here
+# rather than a value read from the file — there is nothing for it to drift from.
+# It is kept so the listing reads in the family's `name (type, host)` shape.
+_TARGET_KIND = "vcenter"
+
+
+def _target_listing(cfg: AppConfig) -> str:
+    """The configured targets as ``name (vcenter, host[, default])`` — or why there are none.
+
+    A config that loads with zero targets is *readable*, just empty: that is a
+    fresh install before ``vmware-vks init``. It needs a different remedy from a config
+    that could not be read at all, so the two must not collapse into one sentence
+    — and neither may collapse into silence.
+
+    Called from inside the caller's ``try`` on purpose: ``AppConfig.default_target``
+    raises when the target list is empty, so the empty case is answered here before
+    that property is ever asked, and anything unforeseen still lands on the caller's
+    fallback instead of stopping the server.
+    """
+    if not cfg.targets:
+        # The documented default path. ``VMWARE_VKS_CONFIG`` can point somewhere else;
+        # ``vmware-vks doctor`` reports which file it actually resolved, and this
+        # one-line remedy does not try to restate that.
+        return "none yet — add one under `targets:` in ~/.vmware-vks/config.yaml"
+    default_name = cfg.default_target.name
+    return "; ".join(
+        f"{t.name} ({_TARGET_KIND}, {t.host}"
+        f"{', default' if t.name == default_name else ''})"
+        for t in cfg.targets
+    )
+
+
+def _target_instructions() -> str:
+    """Server instructions that name the configured targets and how to choose one.
+
+    Until this existed the client was never told which targets are configured, so
+    it called every tool with no ``target`` and got whichever one the connection
+    layer defaults to. Monitor shipped that way until 2026-09-15: with a standalone
+    ESXi host first in the file, "how many VMs does the vCenter have" was answered
+    from that host, confidently and wrongly. Here the same silence answers "does
+    namespace X exist" from the wrong vCenter, and a Namespace that does exist
+    reads as absent.
+
+    The listing is built from the loaded config rather than written out as a
+    sentence, so it cannot drift the day the operator edits their file. The
+    default is marked by comparing against ``default_target``, which is what
+    :meth:`ConnectionManager.connect` itself falls back to when ``target`` is
+    omitted — not a guess about which entry comes first.
+
+    Never raises: a missing or broken config must not stop the server from
+    starting. The tools report that error themselves, each with its own remedy.
+    """
+    try:
+        detail = _target_listing(load_config())
+    except Exception as exc:  # noqa: BLE001 — instructions are advisory, startup is not
+        # Say so *under the marker* rather than dropping the listing. Shown no
+        # listing at all, a client cannot tell "this skill has no targets" from
+        # "this skill could not read them", and the first reading is the one that
+        # produces a confident answer about a system nobody chose. Only the
+        # exception's type name is interpolated — its text quotes the config path.
+        detail = f"could not be read ({type(exc).__name__}) — run `vmware-vks doctor`"
+    return f"{_BASE_INSTRUCTIONS} Configured targets: {detail}.{_TARGET_RULE}"
+
+
+mcp = FastMCP("VMware VKS", instructions=_target_instructions())
 
 # FastMCP takes no version argument and leaves the lowlevel server's at
 # None, which makes `initialize` answer with the MCP SDK's version rather
