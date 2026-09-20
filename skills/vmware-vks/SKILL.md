@@ -40,7 +40,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==1.11.0
+uv tool install vmware-vks==1.12.0
 vmware-vks check
 ```
 
@@ -275,7 +275,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==1.11.0
+uv tool install vmware-vks==1.12.0
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```
