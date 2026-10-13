@@ -68,7 +68,7 @@ targets:
     host: vcenter.example.com
     username: admin@vsphere.local
     port: 443
-    verify_ssl: false
+    verify_ssl: true    # the default; keep it on (see TLS Verification below)
     environment: production
 EOF
 
@@ -170,7 +170,7 @@ This skill follows a defense-in-depth approach with six security properties:
 
 3. **Network Scope** -- No webhook, HTTP listener, or inbound network connection is ever started. MCP transport is stdio only. Outbound connections go to the user-configured vCenter, to the Supervisor Kubernetes API endpoint that vCenter reports for the cluster (`api_server_cluster_endpoint`), and — for `delete_tkc_cluster`'s running-workload check only — to that TKC cluster's control-plane endpoint as recorded on the Supervisor.
 
-4. **TLS Verification** -- `verify_ssl: false` is supported for self-signed vCenter certificates (standard in enterprise environments). Set `verify_ssl: true` in config for CA-signed certificates. Applies to both the SOAP API and REST API connections.
+4. **TLS Verification** -- On by default (`verify_ssl: true`), for both the SOAP API and REST API connections. Keep it on: the account is privileged, and with verification off anyone on the network path can impersonate vCenter and capture its password. For a certificate from a private CA, add that CA to the trust store (or point `SSL_CERT_FILE` at a PEM bundle containing it) instead of turning verification off. `verify_ssl: false` is for an isolated lab vCenter with a self-signed certificate only, never for a production target.
 
 5. **Prompt Injection Protection** -- All tool inputs are passed as typed Python parameters (`str`, `int`, `bool`), never interpolated into shell commands. No `eval`, `exec`, or subprocess calls with user-controlled data.
 
