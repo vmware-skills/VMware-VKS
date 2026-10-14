@@ -77,6 +77,14 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | `get_harbor_info` | Per registry: `id`, `cluster`, `version`, `url`, `status` (health), `storage_used_mb` — status/storage come from a per-registry detail call and are null if it fails. Never returns credentials |
 | `list_namespace_storage_usage` | PVC list and usage stats per Namespace |
 
+## 5. VM Service (vm-operator)
+
+| Tool | What it returns |
+|------|----------------|
+| `list_vm_service_snapshots` | VirtualMachineSnapshot objects in a vSphere Namespace (Kubernetes VM Service — not vSphere VM snapshots, which are vmware-aiops/vmware-monitor `list_vm_snapshots`) |
+| `list_vm_service_groups` | VirtualMachineGroup objects and their boot order in a Namespace |
+| `list_vm_service_network_interfaces` | Network interfaces (multi-NIC) of one VM Service VirtualMachine |
+
 ## Safety Features
 
 | Feature | Details |

@@ -13,10 +13,13 @@ MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor �
 
 ## 升级到 2.0
 
-2.0 把 3 个 MCP 工具改成动词在前（例如 `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` → `list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`），完整的新旧名对照表见
-[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。其他都不变：工具、参数、安全确认门和 CLI 命令都一样。
-如果 agent 提示词、脚本或 `~/.vmware/rules.yaml` 里写了工具名，请改成新名——不过用旧名写的 deny 规则在
-vmware-policy ≥ 1.18 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
+2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_groups` →
+`list_vm_service_groups`、`list_vm_network_interfaces` → `list_vm_service_network_interfaces`。原因是撞名：家族 2.0 里
+vmware-aiops 和 vmware-monitor 把它们的 **vSphere** 虚拟机快照工具叫做 `list_vm_snapshots`，而这三个列的是 **Kubernetes VM
+Service**（vm-operator）对象。**注意：** 如果 agent 提示词、脚本或已保存的工作流还在调用 `list_vm_snapshots`，并且同时加载了
+vmware-aiops 或 vmware-monitor，现在拿到的是 vSphere 那个工具而不是这个——请改名。VKS 范围内针对 `list_vm_snapshots` 的
+deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 同时匹配新旧名；`vmware-audit policy` 会列出这类规则）。
+参数、安全确认门和 CLI 命令都不变；完整对照表见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。
 
 ## 配套 Skills
 
@@ -157,6 +160,14 @@ pip install --no-index --find-links dist vmware-vks
 | `get_tkc_kubeconfig` | TKC kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
 | `get_harbor_info` | 内置 Harbor 仓库信息（ID、集群、版本、URL、健康状态、已用存储） | 只读 |
 | `list_namespace_storage_usage` | PVC 列表和容量统计 | 只读 |
+
+### VM Service（vm-operator）
+
+| 工具 | 说明 | 类型 |
+|------|------|------|
+| `list_vm_service_snapshots` | vSphere Namespace 中的 VirtualMachineSnapshot 对象 | 只读 |
+| `list_vm_service_groups` | Namespace 中的 VirtualMachineGroup 对象及其启动顺序 | 只读 |
+| `list_vm_service_network_interfaces` | 单个 VM Service VirtualMachine 的网卡（多网卡） | 只读 |
 
 ## 架构
 

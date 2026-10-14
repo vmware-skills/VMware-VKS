@@ -13,11 +13,14 @@ MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Super
 
 ## Upgrading to 2.0
 
-2.0 renames 3 MCP tools so every name starts with a verb (e.g. `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` → `list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`). The full old → new table is in
-[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first). Nothing else changes: same tools, parameters,
-safety gates and CLI commands. If an agent prompt, script or `~/.vmware/rules.yaml` names a tool, update it — though deny
-rules written with the old names keep working with vmware-policy ≥ 1.18 (`vmware-audit policy` lists any rule the
-renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workflows.
+2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` →
+`list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`. The reason is a name
+clash: in the family's 2.0, vmware-aiops and vmware-monitor call their **vSphere** VM snapshot tool `list_vm_snapshots`,
+while these list **Kubernetes VM Service** (vm-operator) objects. **Trap:** an agent prompt, script or saved workflow
+that still calls `list_vm_snapshots` with vmware-aiops or vmware-monitor also loaded now reaches the vSphere tool, not
+this one — update it. A VKS-scoped deny rule naming `list_vm_snapshots` now also matches the aiops/monitor tool
+(vmware-policy ≥ 1.18 matches both names; `vmware-audit policy` lists such rules). Parameters, safety gates and CLI
+commands are unchanged; the full table is in [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first).
 
 ## Companion Skills
 
@@ -119,7 +122,7 @@ pip install --no-index --find-links dist vmware-vks
 2. Check usage → `vmware-vks storage -n dev`
 3. Update quota → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## Tool Reference (20 tools)
+## Tool Reference (23 tools)
 
 ### Supervisor
 
@@ -160,6 +163,14 @@ pip install --no-index --find-links dist vmware-vks
 | `get_tkc_kubeconfig` | TKC kubeconfig — credential (bearer token); inline or owner-only file | Write |
 | `get_harbor_info` | Embedded Harbor registry info (id, cluster, version, URL, health, storage used) | Read |
 | `list_namespace_storage_usage` | PVC list and capacity stats | Read |
+
+### VM Service (vm-operator)
+
+| Tool | Description | Type |
+|------|-------------|------|
+| `list_vm_service_snapshots` | VirtualMachineSnapshot objects in a vSphere Namespace | Read |
+| `list_vm_service_groups` | VirtualMachineGroup objects and their boot order in a Namespace | Read |
+| `list_vm_service_network_interfaces` | Network interfaces (multi-NIC) of one VM Service VirtualMachine | Read |
 
 ## Architecture
 
