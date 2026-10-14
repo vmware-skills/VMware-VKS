@@ -21,6 +21,8 @@ that still calls `list_vm_snapshots` with vmware-aiops or vmware-monitor also lo
 this one — update it. A VKS-scoped deny rule naming `list_vm_snapshots` now also matches the aiops/monitor tool
 (vmware-policy ≥ 1.18 matches both names; `vmware-audit policy` lists such rules). Parameters, safety gates and CLI
 commands are unchanged; the full table is in [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first).
+If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
+against both the old and the new name, so one file serves both.
 
 ## Companion Skills
 

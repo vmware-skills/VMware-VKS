@@ -20,6 +20,7 @@ Service**（vm-operator）对象。**注意：** 如果 agent 提示词、脚本
 vmware-aiops 或 vmware-monitor，现在拿到的是 vSphere 那个工具而不是这个——请改名。VKS 范围内针对 `list_vm_snapshots` 的
 deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 同时匹配新旧名；`vmware-audit policy` 会列出这类规则）。
 参数、安全确认门和 CLI 命令都不变；完整对照表见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。
+如果还有 2.0 之前的安装共用这个 `rules.yaml`，请把它的 vmware-policy 也升到 ≥ 1.18.2：它会按新旧两个名字匹配每条规则，一份文件两边都管用。
 
 ## 配套 Skills
 
