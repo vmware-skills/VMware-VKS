@@ -1096,7 +1096,7 @@ def list_namespace_storage_usage(namespace: str, target: Optional[str] = None) -
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low")
-def list_vm_snapshots(namespace: str, target: Optional[str] = None) -> dict:
+def list_vm_service_snapshots(namespace: str, target: Optional[str] = None) -> dict:
     """[READ] List VirtualMachineSnapshot objects in a vSphere Namespace.
 
     VM Service snapshots (vmoperator.vmware.com CRD, new at v1alpha5) via the
@@ -1105,7 +1105,7 @@ def list_vm_snapshots(namespace: str, target: Optional[str] = None) -> dict:
     vm_name, created, ready} plus returned/total/truncated (walked to
     completion, so truncated is always false) and served_version. If the
     Supervisor is older than v1alpha5 the error names the required version. Run
-    list_namespaces first for the namespace; use list_vm_network_interfaces for
+    list_namespaces first for the namespace; use list_vm_service_network_interfaces for
     a VM's NICs.
 
     Args:
@@ -1122,7 +1122,7 @@ def list_vm_snapshots(namespace: str, target: Optional[str] = None) -> dict:
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low")
-def list_vm_groups(namespace: str, target: Optional[str] = None) -> dict:
+def list_vm_service_groups(namespace: str, target: Optional[str] = None) -> dict:
     """[READ] List VirtualMachineGroup objects and their bootOrder in a Namespace.
 
     VM Service groups (vmoperator.vmware.com CRD, v1alpha4+) via the Supervisor
@@ -1147,7 +1147,7 @@ def list_vm_groups(namespace: str, target: Optional[str] = None) -> dict:
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low")
-def list_vm_network_interfaces(
+def list_vm_service_network_interfaces(
     namespace: str, vm_name: str, target: Optional[str] = None
 ) -> dict:
     """[READ] List the network interfaces (multi-NIC) of one VirtualMachine.

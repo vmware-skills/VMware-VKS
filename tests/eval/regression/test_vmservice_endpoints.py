@@ -284,4 +284,5 @@ def test_vmservice_tools_are_registered():
     import vmware_vks.mcp_server.server as srv
 
     names = {t.name for t in asyncio.run(srv.mcp.list_tools())}
-    assert {"list_vm_snapshots", "list_vm_groups", "list_vm_network_interfaces"} <= names
+    assert {"list_vm_service_snapshots", "list_vm_service_groups", "list_vm_service_network_interfaces"} <= names
+    assert not {"list_vm_snapshots", "list_vm_groups", "list_vm_network_interfaces"} & names

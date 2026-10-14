@@ -1,3 +1,26 @@
+## v2.0.0 — MCP tools renamed verb-first
+
+The family now follows one naming convention for MCP tools: the verb comes first, and a domain word is added
+wherever a bare noun would collide with another skill's tool. Twenty of this server's 23 tools already followed
+it and keep their names. The three VM Service tools change.
+
+| Old name (1.x) | New name (2.0.0) |
+|---|---|
+| `list_vm_snapshots` | `list_vm_service_snapshots` |
+| `list_vm_groups` | `list_vm_service_groups` |
+| `list_vm_network_interfaces` | `list_vm_service_network_interfaces` |
+
+**Why these three.** In 2.0 the vSphere snapshot tool of vmware-aiops and vmware-monitor takes the name
+`list_vm_snapshots`. This server's tool lists something different: `VirtualMachineSnapshot` objects of the
+Kubernetes VM Service (vm-operator CRDs in a vSphere Namespace), not vSphere VM snapshots. Two different things
+under one name would let a client call the wrong one, so all three VM Service tools now say `vm_service`.
+
+* The server exposes only the new names. Clients that call the old names must switch.
+* CLI commands are unchanged (`vmware-vks vm snapshots` etc.); their audit rows now carry the new tool names.
+* Tool count, parameters, annotations and behaviour are unchanged.
+* Deny rules in `~/.vmware/rules.yaml` written with old names keep working with vmware-policy ≥ 1.18.0 (it matches
+  both names); `vmware-audit policy` lists any rule that now matches more.
+
 ## v1.12.0 — the MCP instructions name the configured targets
 
 `initialize` hands the client this server's `instructions`, and for a skill whose every tool takes a target that

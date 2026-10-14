@@ -726,7 +726,7 @@ def tkc_delete(
 
 @vm_app.command("snapshots")
 @_cli_errors
-@audited("list_vm_snapshots")
+@audited("list_vm_service_snapshots")
 def vm_snapshots(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -747,7 +747,7 @@ def vm_snapshots(
 
 @vm_app.command("groups")
 @_cli_errors
-@audited("list_vm_groups")
+@audited("list_vm_service_groups")
 def vm_groups(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
@@ -770,7 +770,7 @@ def vm_groups(
 
 @vm_app.command("nics")
 @_cli_errors
-@audited("list_vm_network_interfaces")
+@audited("list_vm_service_network_interfaces")
 def vm_nics(
     vm_name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),

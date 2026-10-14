@@ -40,7 +40,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==1.12.0
+uv tool install vmware-vks==2.0.0
 vmware-vks check
 ```
 
@@ -172,9 +172,9 @@ to be guessed from the row count. These three read their collection in one un-pa
 | | `scale_tkc_cluster` | Write |
 | | `upgrade_tkc_cluster` | Write |
 | | `delete_tkc_cluster` | Write |
-| **VM Service** | `list_vm_snapshots` | Read |
-| | `list_vm_groups` | Read |
-| | `list_vm_network_interfaces` | Read |
+| **VM Service** | `list_vm_service_snapshots` | Read |
+| | `list_vm_service_groups` | Read |
+| | `list_vm_service_network_interfaces` | Read |
 | **Access** | `get_supervisor_kubeconfig` | Write (credential) |
 | | `get_tkc_kubeconfig` | Write (credential) |
 | | `get_harbor_info` | Read |
@@ -275,7 +275,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==1.12.0
+uv tool install vmware-vks==2.0.0
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```
