@@ -228,7 +228,7 @@ def _target_instructions() -> str:
     return f"{_BASE_INSTRUCTIONS} Configured targets: {detail}.{_TARGET_RULE}"
 
 
-mcp = FastMCP("VMware VKS", instructions=_target_instructions())
+mcp = FastMCP("vmware-vks", instructions=_target_instructions())
 
 # FastMCP takes no version argument and leaves the lowlevel server's at
 # None, which makes `initialize` answer with the MCP SDK's version rather
