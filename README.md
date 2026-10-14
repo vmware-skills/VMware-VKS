@@ -11,6 +11,14 @@ MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Super
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+## Upgrading to 2.0
+
+2.0 renames 3 MCP tools so every name starts with a verb (e.g. `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` → `list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`). The full old → new table is in
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first). Nothing else changes: same tools, parameters,
+safety gates and CLI commands. If an agent prompt, script or `~/.vmware/rules.yaml` names a tool, update it — though deny
+rules written with the old names keep working with vmware-policy ≥ 1.18 (`vmware-audit policy` lists any rule the
+renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workflows.
+
 ## Companion Skills
 
 > **Part of the VMware MCP Skills family.** Each skill handles a distinct domain — install only what you need.
