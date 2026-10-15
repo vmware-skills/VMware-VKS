@@ -16,7 +16,7 @@ MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Super
 3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
 `get_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
 read something, and a `get_` name told agents otherwise. Parameters, annotations, safety and CLI commands
-(`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch. Deny
+(`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch (saved vmware-pilot workflows are translated by Pilot ≥ 2.0.0). Deny
 rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-policy ≥ 1.19.0. Details in
 [RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do).
 

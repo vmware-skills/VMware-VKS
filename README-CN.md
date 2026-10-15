@@ -16,7 +16,7 @@ MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor �
 3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
 `get_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
 这个名字让 agent 以为只是读。参数、注解、安全门和 CLI 命令（`vmware-vks kubeconfig supervisor` / `kubeconfig get`）
-都不变；调用旧名字的客户端必须改。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
+都不变；调用旧名字的客户端必须改（已保存的 vmware-pilot 工作流由 Pilot ≥ 2.0.0 自动翻译）。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
 详见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do)。
 
 ## 升级到 2.0

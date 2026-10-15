@@ -169,7 +169,7 @@ def test_both_kubeconfig_tools_declare_their_result_sensitive():
 
 
 @pytest.mark.unit
-def test_get_tkc_kubeconfig_is_not_advertised_read_only():
+def test_issue_tkc_kubeconfig_is_not_advertised_read_only():
     """It creates directories and replaces a caller-chosen file.
 
     ``output_path='~/.kube/config'`` overwrites the user's own kubeconfig, so an

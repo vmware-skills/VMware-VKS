@@ -10,7 +10,9 @@ something — the tools have been annotated `readOnlyHint: false` since 1.x, but
 | `get_supervisor_kubeconfig` | `issue_supervisor_kubeconfig` |
 | `get_tkc_kubeconfig` | `issue_tkc_kubeconfig` |
 
-* The server exposes only the new names. Clients, prompts and saved workflows that call the old names must switch.
+* The server exposes only the new names. Clients and prompts that call the old names must switch. Saved
+  vmware-pilot workflows keep working: Pilot ≥ 2.0.0 translates the old step names (install VKS 3.0.0 and
+  Pilot 2.0.0 together — Pilot 2.0 calls the new names, which VKS 2.x does not register).
 * CLI commands are unchanged (`vmware-vks kubeconfig supervisor`, `vmware-vks kubeconfig get`); their audit rows
   now carry the new tool names.
 * Parameters, annotations (`risk_level="medium"`, `sensitive_result=True`) and behaviour are unchanged.
