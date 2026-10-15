@@ -7,7 +7,7 @@
 
 [English](README.md) | [中文](README-CN.md)
 
-MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor 集群、vSphere 命名空间和 TanzuKubernetesCluster 生命周期。23 个 MCP 工具。
+MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor 集群、vSphere 命名空间和 TanzuKubernetesCluster 生命周期。24 个 MCP 工具。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -128,7 +128,7 @@ pip install --no-index --find-links dist vmware-vks
 2. 查看使用情况 → `vmware-vks storage -n dev`
 3. 更新配额 → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## 工具参考（23 个工具）
+## 工具参考（24 个工具）
 
 ### Supervisor
 
@@ -177,6 +177,12 @@ pip install --no-index --find-links dist vmware-vks
 | `list_vm_service_snapshots` | vSphere Namespace 中的 VirtualMachineSnapshot 对象 | 只读 |
 | `list_vm_service_groups` | Namespace 中的 VirtualMachineGroup 对象及其启动顺序 | 只读 |
 | `list_vm_service_network_interfaces` | 单个 VM Service VirtualMachine 的网卡（多网卡） | 只读 |
+
+### 权限自检
+
+| 工具 | 说明 | 类型 |
+|------|------|------|
+| `get_access_info` | server 使用哪个账号，以及它在根文件夹上是否拥有各工具所需的 vSphere 权限。Kubernetes 调用由命名空间自身的权限决定，此工具不检查 | 只读 |
 
 ## 架构
 
@@ -284,7 +290,7 @@ vmware-vks-mcp
 
 | 特性 | 说明 |
 |------|------|
-| 以只读为主 | 23 个工具中 14 个为只读 |
+| 以只读为主 | 24 个工具中 15 个为只读 |
 | 默认只预览 | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 接受 `confirm`（默认 `False`）：不带它的调用不做任何变更，只返回 `blast_radius` — 将创建什么，或删除会销毁的 TKC 集群、VM、PVC、节点与工作负载。存在阻断项或影响范围有任何部分读不到时，`confirm=True` 会被拒绝。`confirmed` / `dry_run` 为已弃用的别名 |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
@@ -387,10 +393,9 @@ claude mcp add --transport http vmware-vks https://mcp.example.com:8443/mcp \
   证书要用客户端信任、且覆盖这些名字的证书。
 - 在同一台机器上由反向代理终结 TLS 时，用 `--transport http --host 127.0.0.1 --public-name mcp.example.com`，
   并让代理透传 `Authorization` 头。
-- 审计日志把每个调用者记为 `token:<名字>`。指定不同 target 的调用并行执行；不指定 target 的调用逐个执行，
-  所以多人共用一个 server 时请写明 target。
+- 审计日志把每个调用者记为 `token:<名字>`。调用并行执行，同一 target 上也一样：server 为每个 target 最多保持 `VMWARE_MCP_POOL_SIZE`（默认 2）个会话，每个会话都是在该 target 上的一次登录；一个调用最多等 300 秒拿到空闲会话（vmware-policy ≥ 1.22.0）。
 - **能连到这个端点的人，都以该 server 配置的账号操作。** token 只用来识别调用者，不在平台上授予任何权限。
-  每个权限级别单独起一个端点。
+  每个权限级别单独起一个端点。`vmware-vks access-info` 可查看是哪个账号、它能做什么。
 
 **只提供读工具，加上你选定的写工具：**
 

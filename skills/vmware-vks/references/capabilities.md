@@ -1,6 +1,6 @@
 # Capabilities
 
-Detailed capability breakdown for all 23 MCP tools.
+Detailed capability breakdown for all 24 MCP tools.
 
 ## Automation Level Reference
 
@@ -85,6 +85,17 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | `list_vm_service_groups` | VirtualMachineGroup objects and their boot order in a Namespace |
 | `list_vm_service_network_interfaces` | Network interfaces (multi-NIC) of one VM Service VirtualMachine |
 
+## Permissions (1 tool, read-only)
+
+| Tool | Description |
+|------|-------------|
+| `get_access_info` | Which account this server uses on a target, and whether it holds the vSphere privileges each tool needs. `tool` (optional; omit for every tool), `target` |
+
+- Asks vCenter about the current session with `AuthorizationManager.HasPrivilegeOnEntities`, which needs only System.View, so any account can ask about itself. CLI: `vmware-vks access-info [--tool NAME] [--target T]`.
+- **Root folder only.** `not_granted_at_root` is not "no access": the privilege may be granted on a specific cluster. `undetermined` means vCenter did not answer; it is never read as granted.
+- **What it cannot see.** This skill works through the vSphere Automation REST API and the Supervisor Kubernetes API, not SOAP. The per-tool table (`vmware_vks/access_requirements.py`) lists System.Read for inventory reads and StorageProfile.View for storage policies. Namespace create/update/delete also need the Namespaces.Manage privilege, which pyVmomi's metadata does not define, so it is not listed yet. TKC, VM Service and kubeconfig calls are authorized by the namespace's view/edit/owner permission, which a root-folder privilege check cannot answer.
+- **Typical response**: ~150 tokens for one tool; ~500 tokens for the whole-server summary.
+
 ## Safety Features
 
 | Feature | Details |
@@ -96,7 +107,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |
 | Audit Trail | Every MCP call and every CLI command that reaches vCenter or the Supervisor logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy); write operations also mirrored to `~/.vmware-vks/audit.log`, with timestamp, target, operation, parameters, result, user |
-| Read-Only Majority | 14/23 tools are read-only |
+| Read-Only Majority | 15/24 tools are read-only |
 | SSL Support | Verification on by default; `verify_ssl: false` only for an isolated lab vCenter with a self-signed cert |
 | In-Memory Kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig is constructed as a Python dict and loaded via `load_kube_config_from_dict()`; the Supervisor bearer token is never written to a temp file (the pre-v1.5.18 TOCTOU window is gone). Only an explicit export (`output_path` / `-o <path>`) writes it, to an owner-only file. |
 

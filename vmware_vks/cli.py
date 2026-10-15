@@ -936,3 +936,36 @@ def storage_usage(
     si = _get_si(target)
     result = list_namespace_storage_usage(si, namespace)
     console.print_json(json.dumps(result))
+
+
+# ---------------------------------------------------------------------------
+# Access self-diagnosis
+# ---------------------------------------------------------------------------
+
+
+@app.command("access-info")
+@_cli_errors
+@audited("get_access_info")
+def access_info(
+    tool: Optional[str] = typer.Option(None, "--tool", help="One MCP tool name; omit for every tool"),
+    target: Optional[str] = typer.Option(None, "-t", "--target"),
+):
+    """Show which account is used on a target and whether it holds each tool's privileges.
+
+    Checked on the root folder: not_granted_at_root may still be granted on a
+    specific cluster. Kubernetes calls are authorized by the namespace's own
+    permissions, which this does not check.
+    """
+    import json
+
+    from vmware_policy.access import vsphere_access_info
+
+    from vmware_vks.access_requirements import REQUIREMENTS
+    from vmware_vks.config import load_config
+    from vmware_vks.connection import ConnectionManager
+
+    mgr = ConnectionManager(load_config())
+    name = mgr.resolve_target_name(target)
+    si = mgr.connect(name)
+    result = vsphere_access_info(si, target=name, requirements=REQUIREMENTS, tool=tool)
+    console.print_json(json.dumps(result))

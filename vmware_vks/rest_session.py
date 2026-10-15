@@ -46,6 +46,7 @@ import base64
 import json
 import logging
 import ssl
+import threading
 import urllib.error
 import urllib.request
 from typing import TYPE_CHECKING
@@ -65,6 +66,20 @@ _LOGIN_TIMEOUT = 30
 #: (host, username) -> session id. Never written to disk.
 _token_cache: dict[tuple[str, str], str] = {}
 
+# MCP calls run side by side on worker threads (HLD §16 D-13(2)) and share this
+# cache. Without a lock, calls that miss together each log in and all but one
+# session is orphaned on vCenter until it idles out; and a call whose id was
+# refused would drop the fresh id another call had just minted. One login per
+# key at a time (per key, so one unreachable vCenter does not hold up logins to
+# another), and a 401 only drops the id that was actually refused.
+_cache_lock = threading.Lock()
+_login_locks: dict[tuple[str, str], threading.Lock] = {}
+
+
+def _login_lock_for(key: tuple[str, str]) -> threading.Lock:
+    with _cache_lock:
+        return _login_locks.setdefault(key, threading.Lock())
+
 
 def vcenter_host(si: ServiceInstance) -> str:
     """Host the pyVmomi session is connected to, without the port.
@@ -82,13 +97,24 @@ def invalidate_rest_session(host: str, username: str) -> None:
     _token_cache.pop((host, username), None)
 
 
-def invalidate_rest_session_for_si(si: ServiceInstance) -> None:
-    """Forget the cached id behind this connection."""
+def invalidate_rest_session_for_si(
+    si: ServiceInstance, session_id: str | None = None
+) -> None:
+    """Forget the cached id behind this connection.
+
+    With ``session_id`` (the id a request was refused with), the cache is
+    dropped only if it still holds that id: another call may already have
+    replaced it with a fresh one, which must survive.
+    """
     from vmware_vks.connection import get_target_config
 
     target = get_target_config(si)
-    if target is not None:
-        invalidate_rest_session(vcenter_host(si), target.username)
+    if target is None:
+        return
+    key = (vcenter_host(si), target.username)
+    with _cache_lock:
+        if session_id is None or _token_cache.get(key) == session_id:
+            _token_cache.pop(key, None)
 
 
 def _extract_id(payload: object) -> str | None:
@@ -218,10 +244,15 @@ def get_rest_session_id(si: ServiceInstance) -> str:
     cached = _token_cache.get((host, username))
     if cached:
         return cached
-    return login(
-        host,
-        username,
-        target.password,
-        verify_ssl=get_verify_ssl(si),
-        target_name=target.name,
-    )
+    # Single-flight: the calls that missed together share one login.
+    with _login_lock_for((host, username)):
+        cached = _token_cache.get((host, username))
+        if cached:
+            return cached
+        return login(
+            host,
+            username,
+            target.password,
+            verify_ssl=get_verify_ssl(si),
+            target_name=target.name,
+        )

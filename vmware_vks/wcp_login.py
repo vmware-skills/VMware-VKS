@@ -27,6 +27,7 @@ import json
 import logging
 import re
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -50,6 +51,25 @@ _token_cache: dict[tuple[str, str], tuple[str, float]] = {}
 
 _LOGIN_TIMEOUT = 30
 
+# MCP calls run side by side on worker threads (HLD §16 D-13(2)) and share the
+# cache. Calls that miss together would each POST /wcp/login; one login per
+# (host, username) at a time, per key so one unreachable Supervisor does not
+# hold up logins to another.
+_cache_lock = threading.Lock()
+_login_locks: dict[tuple[str, str], threading.Lock] = {}
+
+
+def _login_lock_for(key: tuple[str, str]) -> threading.Lock:
+    with _cache_lock:
+        return _login_locks.setdefault(key, threading.Lock())
+
+
+def _cached_token(key: tuple[str, str]) -> str | None:
+    cached = _token_cache.get(key)
+    if cached and time.monotonic() < cached[1]:
+        return cached[0]
+    return None
+
 
 def invalidate_wcp_token(host: str, username: str) -> None:
     """Drop the cached token for (host, username) — call on 401 responses."""
@@ -68,7 +88,8 @@ def wcp_login(
 
     Uses HTTP Basic auth (vCenter SSO credentials). The returned
     ``session_id`` JWT is the Kubernetes bearer token. Cached per
-    (host, username) for ~8h; call invalidate_wcp_token on 401.
+    (host, username) for ~8h; call invalidate_wcp_token on 401. Calls that
+    miss the cache together share one login.
 
     Args:
         target_name: config target this host came from. Named in the
@@ -79,10 +100,26 @@ def wcp_login(
             unreachable, not vCenter.
     """
     key = (host, username)
-    cached = _token_cache.get(key)
-    if cached and time.monotonic() < cached[1]:
-        return cached[0]
+    token = _cached_token(key)
+    if token:
+        return token
+    with _login_lock_for(key):
+        token = _cached_token(key)
+        if token:
+            return token
+        return _login(host, username, password, verify_ssl, target_name, login_source)
 
+
+def _login(
+    host: str,
+    username: str,
+    password: str,
+    verify_ssl: bool = True,
+    target_name: str = "",
+    login_source: str = "",
+) -> str:
+    """POST /wcp/login and cache the JWT; callers hold the key's login lock."""
+    key = (host, username)
     url = f"https://{host}/wcp/login"
     ctx = ssl.create_default_context()
     if not verify_ssl:

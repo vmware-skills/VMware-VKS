@@ -5,7 +5,8 @@ Exposes Supervisor and Namespace management via MCP stdio transport.
 Tool categories
 ---------------
 * **Read-only**: check_vks_compatibility, get_supervisor_status,
-  list_supervisor_storage_policies, list_namespaces, get_namespace, list_vm_classes
+  list_supervisor_storage_policies, list_namespaces, get_namespace, list_vm_classes,
+  get_access_info
 * **Write, gated** (``confirm=False`` previews the blast radius and changes
   nothing): create_namespace, delete_namespace, create_tkc_cluster,
   delete_tkc_cluster — see ``vmware_vks.ops.gate``
@@ -25,6 +26,7 @@ Source: https://github.com/vmware-skills/VMware-VKS
 
 import logging
 import ssl
+import threading
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -33,8 +35,10 @@ from vmware_policy import (
     sanitize,
     vmware_tool,
 )
+from vmware_policy.access import vsphere_access_info
 
 from vmware_vks import __version__
+from vmware_vks.access_requirements import REQUIREMENTS
 from vmware_vks.config import AppConfig, ConfigError, load_config
 from vmware_vks.connection import ConnectionManager
 from vmware_vks.errors import VksError
@@ -237,18 +241,23 @@ mcp._mcp_server.version = __version__
 _audit = AuditLogger()
 
 _conn_mgr: Optional[ConnectionManager] = None
+# Calls run on worker threads side by side (HLD §16 D-13(2)); two first calls
+# racing here would each build a manager, and one manager's sessions would be
+# orphaned — open logins nobody pools or closes.
+_conn_mgr_lock = threading.Lock()
 
 
 def _get_conn_mgr() -> ConnectionManager:
     global _conn_mgr
-    if _conn_mgr is None:
-        # No env-var read here: load_config resolves the path (explicit arg,
-        # then the environment, then the default). This copy was part of the
-        # reason the server and the CLI opened different files — load_config
-        # did not look at the variable at all (形态 #6).
-        config = load_config()
-        _conn_mgr = ConnectionManager(config)
-    return _conn_mgr
+    with _conn_mgr_lock:
+        if _conn_mgr is None:
+            # No env-var read here: load_config resolves the path (explicit arg,
+            # then the environment, then the default). This copy was part of the
+            # reason the server and the CLI opened different files — load_config
+            # did not look at the variable at all (形态 #6).
+            config = load_config()
+            _conn_mgr = ConnectionManager(config)
+        return _conn_mgr
 
 
 def _get_si(target: Optional[str] = None):
@@ -1174,6 +1183,41 @@ def list_vm_service_network_interfaces(
 
 
 # ---------------------------------------------------------------------------
+# Access self-diagnosis (HLD §17 D-17)
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low")
+def get_access_info(tool: Optional[str] = None, target: Optional[str] = None) -> dict:
+    """[READ] Which account this server uses, and whether it holds each tool's vSphere privileges.
+
+    Use this when a tool fails with a permission error, or before a write, to
+    check what the configured account may do. Asks vCenter about the current
+    session (needs only System.View, so any account can ask about itself).
+    Returns target, account, the privilege states, and for one tool its
+    requires/verdict/meaning; without tool, every tool grouped by verdict.
+    Gotchas: privileges are checked on the root folder only, and a verdict of
+    not_granted_at_root is NOT "no access" — it may be granted on a specific
+    cluster. undetermined means vCenter did not answer; never read it as
+    granted. Kubernetes calls (TKC, VM Service, kubeconfigs) are authorized by
+    the namespace's view/edit/owner permission, which this does not check, and
+    namespace writes also need Namespaces.Manage, which it does not list.
+
+    Args:
+        tool: One tool name on this server, e.g. "create_namespace". Omit to summarize every tool.
+        target: vCenter in config.yaml; omit for the default.
+    """
+    try:
+        mgr = _get_conn_mgr()
+        name = mgr.resolve_target_name(target)
+        si = mgr.connect(name)
+        return vsphere_access_info(si, target=name, requirements=REQUIREMENTS, tool=tool)
+    except Exception as e:
+        return _tool_error(e)
+
+
+# ---------------------------------------------------------------------------
 # Environment declaration
 # ---------------------------------------------------------------------------
 
@@ -1271,6 +1315,7 @@ def main(
     run_server(
         mcp,
         skill="vks",
+        pooled=True,
         expose=expose, allow_write=allow_write, transport=transport, host=host,
         port=port, cert=cert, key=key, public_name=public_name, token_file=token_file,
     )

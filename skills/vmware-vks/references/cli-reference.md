@@ -12,6 +12,13 @@ vmware-vks check   # or: vmware-vks doctor — same checks, both names
 
 Verifies connectivity, credentials, and WCP status for all configured vCenters (or a specific target).
 
+```bash
+# Which account is in use, and does it hold each tool's vSphere privileges (root folder)?
+vmware-vks access-info [--tool create_namespace] [-t <target>]
+```
+
+`not_granted_at_root` may still be granted on a specific cluster. TKC, VM Service and kubeconfig calls are authorized by the namespace's own view/edit/owner permission, which this does not check.
+
 ## Supervisor
 
 ```bash

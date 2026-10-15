@@ -1,3 +1,25 @@
+## Unreleased — calls run side by side on one target; `get_access_info`
+
+**Concurrent calls (HLD §16 D-13(2)).** On a shared HTTPS server, calls no longer wait for each other:
+
+* Each call holds its own vCenter session for as long as it runs, so two calls never share one SOAP connection.
+  Calls on the same target, or naming no target, now run side by side.
+* The server keeps up to `VMWARE_MCP_POOL_SIZE` (default 2) vCenter sessions per target. Each is a login on the
+  target. A call waits at most 300 s for a free session, then fails with a message naming the setting.
+* The vSphere Automation (REST) session id and the Supervisor `/wcp/login` token stay shared per vCenter and
+  account. Calls that need a new one at the same moment now share one login instead of each opening a session,
+  and a call whose REST session was refused no longer discards the fresh one another call just obtained.
+* The CLI and stdio are unchanged: one session per target.
+
+**Check what the account may do (HLD §17 D-17).** New read tool `get_access_info` (CLI: `vmware-vks access-info
+[--tool NAME] [-t TARGET]`) reports which account the server uses and, per tool, whether it holds the vSphere
+privileges the tool needs on the root folder. `not_granted_at_root` is not "no access"; `undetermined` is never read
+as granted. Kubernetes calls (TKC, VM Service, kubeconfigs) are authorized by the namespace's own view/edit/owner
+permission, which this cannot check, and namespace writes also need Namespaces.Manage, which it does not list yet.
+24 MCP tools (15 read, 9 write).
+
+Requires `vmware-policy>=1.22.0`.
+
 ## v3.2.0 — serve MCP over HTTPS
 
 `vmware-vks mcp` can now serve the network as well as stdio (HLD §16, via vmware-policy 1.21.0):

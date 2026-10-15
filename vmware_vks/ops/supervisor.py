@@ -109,7 +109,8 @@ def _rest_request(
     auth_retried = False
 
     while True:
-        headers = {"vmware-api-session-id": get_rest_session_id(si)}
+        session_id = get_rest_session_id(si)
+        headers = {"vmware-api-session-id": session_id}
         if body is not None:
             headers["Content-Type"] = "application/json"
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
@@ -131,7 +132,7 @@ def _rest_request(
             error.__cause__ = e
             if e.code == 401 and not auth_retried:
                 auth_retried = True
-                invalidate_rest_session_for_si(si)
+                invalidate_rest_session_for_si(si, session_id)
                 continue
             if e.code in TRANSIENT_STATUS_CODES and transient_used + 1 < transient_attempts:
                 transient_used += 1

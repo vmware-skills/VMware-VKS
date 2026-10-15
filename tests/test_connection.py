@@ -44,20 +44,23 @@ def test_connect_eviction_pops_id_si_side_stores(monkeypatch):
     mgr = ConnectionManager(_make_config())
 
     stale_si = MagicMock()
+    stale_si.content.sessionManager.currentSession = "active"
+    fresh_si = MagicMock()
+    fresh_si.content.sessionManager.currentSession = "active"
+
+    # Seed the connection cache + side stores as a live connect() would.
+    with patch.object(mgr, "_create_connection", return_value=stale_si):
+        assert mgr.connect("vc1") is stale_si
+    key = id(stale_si)
+    conn_mod._SI_VERIFY_SSL[key] = target.verify_ssl
+    conn_mod._SI_TARGET[key] = target
     # Simulate a dead session: currentSession access raises -> triggers eviction.
     type(stale_si).content = property(
         lambda self: (_ for _ in ()).throw(Exception("session dead"))
     )
-    fresh_si = MagicMock()
-    fresh_si.content.sessionManager.currentSession = "active"
 
-    # Seed the connection cache + side stores as if stale_si was a live connect().
-    mgr._connections["vc1"] = stale_si
-    key = id(stale_si)
-    conn_mod._SI_VERIFY_SSL[key] = target.verify_ssl
-    conn_mod._SI_TARGET[key] = target
-
-    with patch.object(mgr, "_create_connection", return_value=fresh_si):
+    with patch.object(mgr, "_create_connection", return_value=fresh_si), \
+         patch("pyVim.connect.Disconnect"):
         result = mgr.connect("vc1")
 
     assert result is fresh_si

@@ -7,7 +7,7 @@
 
 [English](README.md) | [中文](README-CN.md)
 
-MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Supervisor clusters, vSphere Namespaces, and VKS Cluster lifecycle. 23 MCP tools.
+MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Supervisor clusters, vSphere Namespaces, and VKS Cluster lifecycle. 24 MCP tools.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -133,7 +133,7 @@ pip install --no-index --find-links dist vmware-vks
 2. Check usage → `vmware-vks storage -n dev`
 3. Update quota → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## Tool Reference (23 tools)
+## Tool Reference (24 tools)
 
 ### Supervisor
 
@@ -182,6 +182,12 @@ pip install --no-index --find-links dist vmware-vks
 | `list_vm_service_snapshots` | VirtualMachineSnapshot objects in a vSphere Namespace | Read |
 | `list_vm_service_groups` | VirtualMachineGroup objects and their boot order in a Namespace | Read |
 | `list_vm_service_network_interfaces` | Network interfaces (multi-NIC) of one VM Service VirtualMachine | Read |
+
+### Permissions
+
+| Tool | Description | Type |
+|------|-------------|------|
+| `get_access_info` | Which account the server uses and whether it holds each tool's vSphere privileges on the root folder. Kubernetes calls are authorized by the namespace's own permissions, which it does not check | Read |
 
 ## Architecture
 
@@ -297,7 +303,7 @@ vmware-vks-mcp
 
 | Feature | Description |
 |---------|-------------|
-| Read-heavy | 14/23 tools are read-only |
+| Read-heavy | 15/24 tools are read-only |
 | Preview by default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default `False`): a call without it changes nothing and returns `blast_radius` — what would be created, or the TKC clusters, VMs, PVCs, nodes and workloads a delete destroys. `confirm=True` is refused when a blocker stands or part of the blast radius could not be read. `confirmed` / `dry_run` are deprecated aliases |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |
@@ -407,10 +413,9 @@ claude mcp add --transport http vmware-vks https://mcp.example.com:8443/mcp \
   before it binds that unauthenticated requests get 401. Use a certificate your clients trust for those names.
 - Behind a TLS-terminating reverse proxy on the same machine use `--transport http --host 127.0.0.1
   --public-name mcp.example.com` and pass the `Authorization` header through.
-- The audit log records each caller as `token:<name>`. Calls naming different targets run in parallel; calls that
-  name no target run one at a time, so name the target when several people share a server.
+- The audit log records each caller as `token:<name>`. Calls run side by side, also on the same target: the server keeps up to `VMWARE_MCP_POOL_SIZE` (default 2) sessions per target, each one a login on that target, and a call waits at most 300 s for a free session (vmware-policy ≥ 1.22.0).
 - **Everyone who can reach the endpoint acts with this server's account.** Tokens identify callers; they grant
-  nothing on the platform. Run one endpoint per privilege level.
+  nothing on the platform. Run one endpoint per privilege level. `vmware-vks access-info` shows which account that is and what it may do.
 
 **Offer only read tools, plus the writes you choose:**
 

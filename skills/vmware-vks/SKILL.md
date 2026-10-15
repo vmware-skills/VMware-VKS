@@ -21,7 +21,7 @@ compatibility: >
 
 > **Disclaimer**: This is a community-maintained open-source project and is **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and "vSphere" are trademarks of Broadcom. Source code is publicly auditable at [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS) under the MIT license.
 
-AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
+AI-powered VMware vSphere Kubernetes Service (VKS) management — 24 MCP tools.
 
 > Requires vSphere 8.x+ with Workload Management enabled.
 > **Companion skills**: [vmware-aiops](https://github.com/vmware-skills/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/vmware-skills/VMware-Monitor) (monitoring), [vmware-storage](https://github.com/vmware-skills/VMware-Storage) (storage), [vmware-nsx](https://github.com/vmware-skills/VMware-NSX) (NSX networking), [vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security) (DFW/firewall), [vmware-aria](https://github.com/vmware-skills/VMware-Aria) (metrics/alerts/capacity), [vmware-avi](https://github.com/vmware-skills/VMware-AVI) (AVI/ALB/AKO), [vmware-harden](https://github.com/vmware-skills/VMware-Harden) (compliance baselines).
@@ -36,6 +36,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 | **TKC Clusters** | List, get, versions, create, scale, upgrade, delete with workload guard | 7 |
 | **VM Service** | VM snapshots, VM groups + bootOrder, VM multi-NIC readout (vm-operator CRDs, read-only) | 3 |
 | **Access** | Supervisor kubeconfig, TKC kubeconfig, Harbor registry, storage usage | 4 |
+| **Permissions** | Which account is in use and whether it holds each tool's vSphere privileges (read-only) | 1 |
 
 ## Quick Install
 
@@ -80,6 +81,7 @@ vmware-vks check
 
 **Pre-flight (judgment)**:
 - Supervisor must be vSphere 8.x+ with WCP enabled — `supervisor check` returns pass/fail. If fail, no amount of TKC commands will work; resolve at vSphere/WCP layer first.
+- Account rights: `access-info --tool create_namespace` checks the vSphere side; TKC calls are decided by the namespace's view/edit permission, which it does not check.
 - K8s version: pick a TKR version that's still supported by VMware (not EOL). New clusters on EOL versions look fine until you need a CVE patch and there isn't one.
 - VM class sizing: `best-effort-*` for dev, `guaranteed-*` for prod. A `best-effort` worker can be evicted under host pressure — production workloads need guaranteed.
 - Storage policy: must already exist in vCenter. `list_supervisor_storage_policies` first and pass the returned `policy` ID (not the display name); creating a TKC against a missing policy fails after CP boot, leaving partial state.
@@ -144,7 +146,7 @@ Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (23 — 14 read, 9 write)
+## MCP Tools (24 — 15 read, 9 write)
 
 All accept optional `target` parameter to specify a named vCenter.
 
@@ -179,6 +181,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 | | `issue_tkc_kubeconfig` | Write (credential) |
 | | `get_harbor_info` | Read |
 | | `list_namespace_storage_usage` | Read |
+| **Permissions** | `get_access_info` | Read |
 
 `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default False). Without it they change nothing and return `blast_radius`: the spec or YAML plan to be created, or what a delete destroys (TKC clusters, VMs and PVCs in the namespace; node counts and running workloads of a cluster). Show it to the user; pass `confirm=True` only after they decide on what they saw.
 
@@ -197,6 +200,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 # Supervisor
 vmware-vks check [--config <path>]
 vmware-vks preflight-auth [--target <name>]   # live-validate POST /wcp/login (issue #13)
+vmware-vks access-info [--tool <name>] [--target <name>]   # what may this account do?
 vmware-vks supervisor status <cluster-id> [--target <name>]
 vmware-vks supervisor storage-policies [--target <name>]
 
