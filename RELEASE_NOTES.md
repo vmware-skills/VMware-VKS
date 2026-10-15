@@ -1,3 +1,30 @@
+## v3.0.1 — the Supervisor login goes to the Supervisor (issue #13)
+
+Reported in [#13](https://github.com/vmware-skills/VMware-VKS/issues/13) from a live VCF 9.1 (vCenter 9.1.0,
+Supervisor v1.32.9): `POST https://<vcenter>/wcp/login` answers **404**, while the same request to the Supervisor
+API endpoint answers 200 with the `session_id` JWT, and that JWT works as a bearer against the Supervisor API.
+`get_wcp_token` logged in at the vCenter host from `config.yaml`, so on 9.1 every Supervisor and TKC call failed.
+
+* The login now goes to the Supervisor API endpoint that vCenter publishes for the running Supervisor
+  (`api_server_cluster_endpoint`), without its port: the published endpoint may carry 6443, while `/wcp/login`
+  is served on 443. The token cache and its invalidation on 401 use the same host.
+* New optional per-target **`supervisor_host`** in `config.yaml`. When set, it is used for the login **and** for
+  every Supervisor API call (kubeconfig `server`, preflight probe), without asking vCenter. Use it when the
+  published endpoint is not reachable from the machine running the skill. The login goes to its host on 443;
+  Kubernetes calls keep a port if you give one (`sup.example.com:6443`). A bare IPv6 address and a trailing FQDN
+  dot are accepted; one parser serves both uses, so a bad port is refused the same way on both.
+* An address that does not leave a usable host (empty, contains whitespace, not a hostname or IP) is refused with
+  a teaching error before any request; the value is not echoed.
+* A transport failure at the login now says the **Supervisor** is unreachable, names where its address came from,
+  and points to `supervisor_host` and to trusting the Supervisor's CA. It used to give the vCenter remedy, and
+  `vmware-vks check` (which tests vCenter) would pass. `http.client.HTTPException` (an unusable URL, a connection
+  dropped mid-response) is now a teaching error instead of a raw exception.
+* `vmware-vks preflight-auth` resolves the login address first and reports where it came from; a 404 now suggests
+  `supervisor_host` as well as a different endpoint path.
+
+**Not verified live:** vSphere 7 and 8. The old target (vCenter) was never confirmed there either; the only live
+data point is 9.1. If `preflight-auth` reports 404 at the Supervisor on 7/8, please tell us on #13.
+
 ## v3.0.0 — kubeconfig tools are named for what they do
 
 Two MCP tools are renamed. Both hand back a kubeconfig that embeds a live Supervisor bearer token (JWT from
