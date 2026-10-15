@@ -180,6 +180,13 @@ def _cli_errors(fn):
                 "~/.vmware-vks/config.yaml (or re-run 'vmware-vks init').[/red]"
             )
             raise typer.Exit(1) from e
+        except vim.fault.NotAuthenticated as e:
+            # Not a credentials problem: the session expired, or the account
+            # has no vSphere role (AIops#47). Say both.
+            from vmware_vks.connection import NOT_AUTHENTICATED_HINT
+
+            console.print(f"[red]Error: {NOT_AUTHENTICATED_HINT}[/red]")
+            raise typer.Exit(1) from e
         except vim.fault.InvalidLogin as e:
             # The SDK message ("incorrect user name or password") doesn't say
             # WHERE to fix it — point at the exact file + env var.

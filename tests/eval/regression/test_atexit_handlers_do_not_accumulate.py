@@ -43,9 +43,15 @@ def _target(name: str = "vcenter-prod") -> TargetConfig:
     return TargetConfig(name=name, host="vc.example.com", config_username="svc")
 
 
-def _dead_si(*_a, **_kw):
-    """An SI whose liveness probe says dead, so the next connect() evicts it."""
+def _live_si(*_a, **_kw):
+    """An SI with a session; a login without one is refused (AIops#47)."""
     si = MagicMock()
+    si.content.sessionManager.currentSession = MagicMock()
+    return si
+
+
+def _expire(si: MagicMock) -> MagicMock:
+    """The session expires after login, so the next connect() evicts it."""
     si.content.sessionManager.currentSession = None
     return si
 
@@ -53,7 +59,7 @@ def _dead_si(*_a, **_kw):
 @pytest.mark.unit
 def test_a_released_connection_is_collectable() -> None:
     """The mechanism: what connect() registers, _release_si takes back."""
-    with patch("pyVim.connect.SmartConnect", side_effect=_dead_si):
+    with patch("pyVim.connect.SmartConnect", side_effect=_live_si):
         si = ConnectionManager._create_connection(_target())
     ref = weakref.ref(si)
 
@@ -68,7 +74,7 @@ def test_a_connection_not_released_is_pinned() -> None:
     """The negative half. Without this, the test above could pass because
     nothing ever held the object -- and would then keep passing with the whole
     registration deleted."""
-    with patch("pyVim.connect.SmartConnect", side_effect=_dead_si):
+    with patch("pyVim.connect.SmartConnect", side_effect=_live_si):
         si = ConnectionManager._create_connection(_target())
     ref = weakref.ref(si)
 
@@ -87,10 +93,10 @@ def test_repeated_eviction_does_not_pin_every_session() -> None:
     mgr = ConnectionManager(cfg)
 
     seen: list[weakref.ref] = []
-    with patch("pyVim.connect.SmartConnect", side_effect=_dead_si), \
+    with patch("pyVim.connect.SmartConnect", side_effect=_live_si), \
          patch("pyVim.connect.Disconnect"):
         for _ in range(20):
-            seen.append(weakref.ref(mgr.connect("vcenter-prod")))
+            seen.append(weakref.ref(_expire(mgr.connect("vcenter-prod"))))
         # Drop the last, still-cached session the way production does.
         mgr.disconnect_all()
     gc.collect()

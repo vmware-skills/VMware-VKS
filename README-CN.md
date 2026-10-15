@@ -306,6 +306,10 @@ vmware-vks-mcp
 
 必须在 vCenter 中启用 Workload Management。检查：vCenter UI -> Workload Management。需要 vSphere 8.x+ 且持有 Enterprise Plus 或 VCF 许可证。
 
+### `check` 报 "no vSphere role"，或每个命令都报 "session is not authenticated"
+
+密码没错；账号没有 vSphere 角色，所以 vCenter 看不到它的会话，每个调用都失败。`vmware-vks check` 会在 "vCenter reachable" 这一行报出来，早于任何 REST 或 `/wcp/login` 调用。在 vCenter 根文件夹上给账号分配一个角色（Read-Only 或更高）：Administration > Access Control > Global Permissions；命名空间和 TKC 操作还需要 Workload Management 权限。运行中出现同一错误也可能是会话过期：重跑命令即可。
+
 ### 所有 REST 工具都返回 401
 
 命名空间、存储策略、Supervisor 状态这些工具走的是 vSphere Automation REST API，

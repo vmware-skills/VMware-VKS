@@ -319,6 +319,10 @@ vmware-vks-mcp
 
 Workload Management must be enabled in vCenter. Check: vCenter UI -> Workload Management. Requires vSphere 8.x+ with Enterprise Plus or VCF license.
 
+### "No vSphere role" from `check`, or "session is not authenticated" on every command
+
+The password is right; the account has no vSphere role, so vCenter shows no session for it and every call fails. `vmware-vks check` reports this on the "vCenter reachable" row, before any REST or `/wcp/login` call. Assign the account a role (Read-Only or higher) on the vCenter root folder under Administration > Access Control > Global Permissions; Namespace and TKC work also needs Workload Management privileges. Seen mid-run, the same fault can also be an expired session: run the command again.
+
 ### Every REST tool returns 401
 
 The namespace, storage-policy and Supervisor-status tools authenticate against
