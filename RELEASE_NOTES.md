@@ -1,3 +1,20 @@
+## v3.1.0 — offer only read tools, plus chosen write tools
+
+`vmware-vks mcp` can now offer a subset of this server's tools (HLD §17 D-16, via vmware-policy 1.20.0):
+
+```bash
+vmware-vks mcp --expose read --allow-write create_namespace
+```
+
+* `--expose read` (or `VMWARE_VKS_MCP_EXPOSE=read`) keeps only tools annotated `readOnlyHint: true`; `--allow-write a,b`
+  (or `VMWARE_VKS_MCP_ALLOW_WRITE`) keeps chosen write tools on top. The default is unchanged: every tool.
+* A bad value, or a name that is not a write tool of this server, stops the server before it serves (exit 2).
+  Flags and environment variables are not mixed; a blank flag counts as not given. Pre-2.0 names are accepted.
+* This limits what clients are offered; it is not authorization. See "Limiting which tools are offered" in
+  `references/setup-guide.md`, which also notes that an agent with a shell can bypass MCP, so the account itself
+  must be least-privilege.
+* Requires `vmware-policy>=1.20.0`.
+
 ## v3.0.1 — the Supervisor login goes to the Supervisor (issue #13)
 
 Reported in [#13](https://github.com/vmware-skills/VMware-VKS/issues/13) from a live VCF 9.1 (vCenter 9.1.0,
