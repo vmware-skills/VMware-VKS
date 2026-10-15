@@ -35,7 +35,7 @@ from vmware_policy import (
     sanitize,
     vmware_tool,
 )
-from vmware_policy.access import vsphere_access_info
+from vmware_policy.access import unknown_tool_message, vsphere_access_info
 
 from vmware_vks import __version__
 from vmware_vks.access_requirements import REQUIREMENTS
@@ -1208,6 +1208,9 @@ def get_access_info(tool: Optional[str] = None, target: Optional[str] = None) ->
         tool: One tool name on this server, e.g. "create_namespace". Omit to summarize every tool.
         target: vCenter in config.yaml; omit for the default.
     """
+    unknown = unknown_tool_message(tool, REQUIREMENTS)  # no login for a misspelled name
+    if unknown:
+        return {"error": unknown}
     try:
         mgr = _get_conn_mgr()
         name = mgr.resolve_target_name(target)

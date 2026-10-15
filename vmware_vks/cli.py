@@ -958,12 +958,16 @@ def access_info(
     """
     import json
 
-    from vmware_policy.access import vsphere_access_info
+    from vmware_policy.access import unknown_tool_message, vsphere_access_info
 
     from vmware_vks.access_requirements import REQUIREMENTS
     from vmware_vks.config import load_config
     from vmware_vks.connection import ConnectionManager
 
+    unknown = unknown_tool_message(tool, REQUIREMENTS)  # before connecting: no login for a typo
+    if unknown:
+        typer.echo(unknown, err=True)
+        raise typer.Exit(2)
     mgr = ConnectionManager(load_config())
     name = mgr.resolve_target_name(target)
     si = mgr.connect(name)
