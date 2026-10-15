@@ -216,13 +216,17 @@ def test_get_wcp_token_uses_connection_target_config():
     connection._SI_TARGET[id(si)] = target
     connection._SI_VERIFY_SSL[id(si)] = False
     try:
-        with patch.dict("os.environ", {"VMWARE_VKS_LAB_PASSWORD": "pw"}):
+        with patch.dict("os.environ", {"VMWARE_VKS_LAB_PASSWORD": "pw"}), patch(
+            "vmware_vks.k8s_connection._resolve_supervisor_endpoint",
+            return_value="10.0.0.1:6443",
+        ):
             with patch("urllib.request.urlopen") as mock_open:
                 mock_open.return_value = _mock_response({"session_id": "jwt-si"})
                 token = wcp_login.get_wcp_token(si)
         assert token == "jwt-si"
         req = mock_open.call_args[0][0]
-        assert req.full_url == "https://vc.example.com/wcp/login"
+        # The Supervisor endpoint, on 443 — not the vCenter host (VKS#13).
+        assert req.full_url == "https://10.0.0.1/wcp/login"
     finally:
         connection._SI_TARGET.pop(id(si), None)
         connection._SI_VERIFY_SSL.pop(id(si), None)

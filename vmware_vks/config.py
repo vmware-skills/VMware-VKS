@@ -149,6 +149,14 @@ class TargetConfig:
     env var overrides this, and the override is what actually gets used."""
     port: int = 443
     verify_ssl: bool = True
+    supervisor_host: str = ""
+    """Supervisor API address, for the login and every Supervisor API call.
+
+    Optional. Empty means: use the endpoint vCenter publishes for the running
+    Supervisor (``api_server_cluster_endpoint``). Set it when that address is
+    not reachable from this machine. ``POST /wcp/login`` goes to its host on
+    443; Kubernetes calls keep the port when one is given.
+    """
     environment: str = ""
     """Which environment this target is, e.g. production / staging / lab.
 
@@ -274,6 +282,7 @@ def load_config(config_path: Path | None = None) -> AppConfig:
             config_username=t.get("username", "administrator@vsphere.local"),
             port=t.get("port", 443),
             verify_ssl=t.get("verify_ssl", True),
+            supervisor_host=str(t.get("supervisor_host", "") or "").strip(),
             environment=str(t.get("environment", "") or "").strip(),
         )
         for t in raw.get("targets", [])

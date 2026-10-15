@@ -90,7 +90,7 @@ def _wcp_login_step(si: "ServiceInstance") -> tuple[Optional[str], tuple[Step, .
     """
     from vmware_vks.connection import get_target_config, get_verify_ssl
     from vmware_vks.errors import VksApiError
-    from vmware_vks.wcp_login import invalidate_wcp_token, wcp_login
+    from vmware_vks.wcp_login import invalidate_wcp_token, login_host, wcp_login
 
     target = get_target_config(si)
     if target is None:
@@ -103,23 +103,37 @@ def _wcp_login_step(si: "ServiceInstance") -> tuple[Optional[str], tuple[Step, .
             ),
         )
 
+    try:
+        host, source = login_host(si, target)
+    except VksApiError as e:
+        return None, (
+            Step(
+                "POST /wcp/login",
+                False,
+                f"could not determine the Supervisor login address: {e}",
+            ),
+        )
+
     # Bypass the token cache so the preflight always hits the wire — a cached
     # token would mask an endpoint/field regression we are trying to detect.
-    invalidate_wcp_token(target.host, target.username)
-    url = f"https://{target.host}/wcp/login"
+    invalidate_wcp_token(host, target.username)
+    url = f"https://{host}/wcp/login"
     try:
         token = wcp_login(
-            target.host,
+            host,
             target.username,
             target.password,
             verify_ssl=get_verify_ssl(si),
             target_name=target.name,
+            login_source=source,
         )
     except VksApiError as e:
         code = e.status_code
         if code == 404:
             hint = (
-                f"{url} returned 404 — the login endpoint differs on this "
+                f"{url} returned 404 (login host from the {source}). If that is "
+                "not the Supervisor API address, set supervisor_host for this target "
+                "in config.yaml. Otherwise the login endpoint differs on this "
                 "Supervisor version. Capture the real path: run "
                 f"'kubectl vsphere login' with -v=9, or curl -k -u USER {url} "
                 "and adjacent paths (e.g. /wcp/login, /api/v1/namespaces), then "
@@ -139,7 +153,8 @@ def _wcp_login_step(si: "ServiceInstance") -> tuple[Optional[str], tuple[Step, .
     reach = Step(
         "POST /wcp/login",
         True,
-        f"{url} returned 200 — endpoint path confirmed on this Supervisor.",
+        f"{url} returned 200 — endpoint path confirmed on this Supervisor "
+        f"(login host from the {source}).",
     )
     parse = Step(
         "Parse session_id",

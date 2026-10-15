@@ -14,6 +14,11 @@ targets:
     # verify_ssl: true is the default (v1.5.15+). Set to false ONLY for
     # self-signed certs in lab/dev environments — disables SSL verification.
     # verify_ssl: false
+    # Supervisor API address, used for the Kubernetes login (POST /wcp/login on
+    # port 443) and for every Supervisor API call. Leave unset to use the endpoint
+    # vCenter publishes for the running Supervisor. Set it only when that address
+    # is not reachable from this machine. A bare IPv6 address is fine.
+    # supervisor_host: 10.0.0.5
     # Optional label for this target. An environment-scoped 'deny' rule in
     # ~/.vmware/rules.yaml can match on it — e.g. freeze writes on 'production'.
     # A target with no label is simply not matched by such a rule.

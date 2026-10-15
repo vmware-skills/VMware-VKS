@@ -42,6 +42,17 @@ def _resolve_supervisor_endpoint(si: ServiceInstance) -> str:
     Runs the two vCenter REST round-trips (cluster list + cluster detail) only
     on a cache miss; subsequent kubeconfig builds for the same host reuse it.
     """
+    from vmware_vks.connection import get_target_config
+
+    target = get_target_config(si)
+    if target is not None and target.supervisor_host:
+        # Login and every Kubernetes call go to the same address: a
+        # supervisor_host that only moved the login would log in and then
+        # dial the address it exists to avoid.
+        from vmware_vks.wcp_login import SOURCE_CONFIG, supervisor_address
+
+        return supervisor_address(target.supervisor_host, SOURCE_CONFIG)
+
     host = _si_host(si)
     cached = _endpoint_cache.get(host)
     if cached:

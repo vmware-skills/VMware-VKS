@@ -105,6 +105,9 @@ def test_preflight_404_on_login_gives_capture_the_path_hint():
         with patch.dict("os.environ", {"VMWARE_VKS_LAB_PASSWORD": "pw"}), patch(
             "vmware_vks.preflight_auth._connect_step",
             return_value=(si, preflight_auth.Step("vCenter reachable", True, "ok")),
+        ), patch(
+            "vmware_vks.k8s_connection._resolve_supervisor_endpoint",
+            return_value="10.0.0.1:6443",
         ), patch("urllib.request.urlopen", side_effect=err):
             result = preflight_auth.run_preflight_auth("lab")
     finally:
@@ -117,6 +120,7 @@ def test_preflight_404_on_login_gives_capture_the_path_hint():
     assert "404" in login.detail
     assert "endpoint differs" in login.detail
     assert "issue #13" in login.detail
+    assert "supervisor_host" in login.detail
     # No K8s probe step once login fails.
     assert "Supervisor K8s API" not in [s.name for s in result.steps]
 
@@ -174,7 +178,15 @@ def test_preflight_403_on_k8s_probe_counts_as_authenticated():
 
 
 def test_preflight_never_raises_on_endpoint_resolution_failure():
+    # Login resolves the endpoint first; with supervisor_host set it does not,
+    # so the probe is the step that meets the resolution failure.
+    from vmware_vks import connection
+
     si, connection = _si_with_target()
+    connection._SI_TARGET[id(si)] = TargetConfig(
+        name="lab", host="vc.example.com", config_username="admin",
+        verify_ssl=False, supervisor_host="10.0.0.1",
+    )
     try:
         with patch.dict("os.environ", {"VMWARE_VKS_LAB_PASSWORD": "pw"}), patch(
             "vmware_vks.preflight_auth._connect_step",
@@ -197,7 +209,7 @@ def test_preflight_bypasses_token_cache():
     # A stale cached token must NOT short-circuit the live login — the whole
     # point of the preflight is to hit the wire.
     si, connection = _si_with_target()
-    wcp_login._token_cache[("vc.example.com", "admin")] = ("stale-cached", 1e18)
+    wcp_login._token_cache[("10.0.0.1", "admin")] = ("stale-cached", 1e18)
     try:
         with patch.dict("os.environ", {"VMWARE_VKS_LAB_PASSWORD": "pw"}), patch(
             "vmware_vks.preflight_auth._connect_step",
@@ -210,7 +222,7 @@ def test_preflight_bypasses_token_cache():
             result = preflight_auth.run_preflight_auth("lab")
             # login endpoint was actually called despite the cache entry
             login_req = mock_open.call_args_list[0][0][0]
-            assert login_req.full_url == "https://vc.example.com/wcp/login"
+            assert login_req.full_url == "https://10.0.0.1/wcp/login"
     finally:
         connection._SI_TARGET.pop(id(si), None)
         connection._SI_VERIFY_SSL.pop(id(si), None)

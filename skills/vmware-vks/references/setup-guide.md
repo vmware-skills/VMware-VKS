@@ -8,13 +8,13 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS#v3.0.0
+npx skills add vmware-skills/VMware-VKS#v3.0.1
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install @zw008/vmware-vks --version 3.0.0
+clawhub install @zw008/vmware-vks --version 3.0.1
 
 # Via PyPI (recommended for version pinning)
-uv tool install vmware-vks==3.0.0
+uv tool install vmware-vks==3.0.1
 ```
 
 ### Claude Code
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone --branch v3.0.0 https://github.com/vmware-skills/VMware-VKS.git
+git clone --branch v3.0.1 https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -58,7 +58,7 @@ uv pip install -e .
 
 ```bash
 # 1. Install from PyPI
-uv tool install vmware-vks==3.0.0
+uv tool install vmware-vks==3.0.1
 
 # 2. Configure
 mkdir -p ~/.vmware-vks
@@ -78,6 +78,12 @@ chmod 600 ~/.vmware-vks/.env
 # 3. Verify
 vmware-vks check
 ```
+
+`supervisor_host` (optional, per target): the Supervisor API address. It is used for the Kubernetes login
+(`POST https://<supervisor>/wcp/login`, port 443) and for every Supervisor API call. When unset, both go to the
+endpoint vCenter publishes for the running Supervisor. On vSphere 9.1, vCenter itself answers 404 for
+`/wcp/login`; only the Supervisor serves it. Set `supervisor_host` when the published endpoint is not reachable
+from the machine running the skill. `vmware-vks preflight-auth` reports which address it used.
 
 **`environment` (optional label)**: policy scopes its rules by this value, so an environment-scoped `deny` rule in `~/.vmware/rules.yaml` can match on it — for example, to freeze state-changing writes on `production`. Any label you like works (`production`, `staging`, `lab`, `dc2-prod`); the target's *name* is not used for it.
 

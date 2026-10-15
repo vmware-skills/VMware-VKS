@@ -40,7 +40,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==3.0.0
+uv tool install vmware-vks==3.0.1
 vmware-vks check
 ```
 
@@ -245,13 +245,13 @@ vCenter keeps two independent session stores, and this skill uses both. Namespac
 
 ### Validating Supervisor auth (POST /wcp/login)
 
-Supervisor/TKC Kubernetes auth uses a JWT obtained from `POST https://<vcenter>/wcp/login` (HTTP Basic → JSON `session_id` bearer token), not the pyVmomi SOAP session key, and not the `/api/session` id above either — three separate credentials. To validate this end-to-end against your real Supervisor, run:
+Supervisor/TKC Kubernetes auth uses a JWT obtained from `POST https://<supervisor>/wcp/login` (HTTP Basic → JSON `session_id` bearer token), not the pyVmomi SOAP session key, and not the `/api/session` id above either — three separate credentials. To validate this end-to-end against your real Supervisor, run:
 
 ```bash
 vmware-vks preflight-auth [--target <name>]
 ```
 
-It performs the **real** login (no mocks) and reports, per target: vCenter reachable → `/wcp/login` HTTP status → parseable `session_id` → does the JWT authenticate a trivial Supervisor K8s API call. A healthy result is all four steps `✓ PASS` ending in `target '<name>': /wcp/login auth flow validated end-to-end.` (exit code 0). On failure each step prints a teaching message — e.g. a 404 on `/wcp/login` means the endpoint path differs on your Supervisor version (capture the real path), a 401 on the K8s probe means `session_id` is not the bearer token on your version. It never tracebacks — every failure is status output.
+It performs the **real** login (no mocks) and reports, per target: vCenter reachable → `/wcp/login` HTTP status → parseable `session_id` → does the JWT authenticate a trivial Supervisor K8s API call. A healthy result is all four steps `✓ PASS` ending in `target '<name>': /wcp/login auth flow validated end-to-end.` (exit code 0). The login goes to the Supervisor API endpoint vCenter publishes, or to `supervisor_host` when that target sets it (vCenter itself answers 404 for `/wcp/login` on 9.1). On failure each step prints a teaching message — e.g. a 404 on `/wcp/login` means the wrong host (set `supervisor_host`) or an endpoint path that differs on your Supervisor version, a 401 on the K8s probe means `session_id` is not the bearer token on your version. It never tracebacks — every failure is status output.
 
 ### Kubeconfig retrieval fails
 
@@ -275,7 +275,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==3.0.0
+uv tool install vmware-vks==3.0.1
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```
