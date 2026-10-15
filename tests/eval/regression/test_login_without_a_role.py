@@ -114,7 +114,7 @@ def test_preflight_names_the_role_without_a_credentials_hint(role_less, monkeypa
 
 def test_doctor_row_names_the_missing_role(role_less, monkeypatch, tmp_path):
     cfg_file = tmp_path / "config.yaml"
-    cfg_file.write_text("targets: []\n")
+    cfg_file.write_text("targets: []\n", encoding="utf-8")
     monkeypatch.setattr("vmware_vks.config.load_config", lambda *a, **k: _config())
     buf = io.StringIO()
     monkeypatch.setattr(doctor, "console", Console(file=buf, width=1000))
