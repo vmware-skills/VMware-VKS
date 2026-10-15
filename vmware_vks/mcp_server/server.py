@@ -1201,8 +1201,8 @@ def get_access_info(tool: Optional[str] = None, target: Optional[str] = None) ->
     not_granted_at_root is NOT "no access" — it may be granted on a specific
     cluster. undetermined means vCenter did not answer; never read it as
     granted. Kubernetes calls (TKC, VM Service, kubeconfigs) are authorized by
-    the namespace's view/edit/owner permission, which this does not check, and
-    namespace writes also need Namespaces.Manage, which it does not list.
+    the namespace's view/edit/owner permission, which this cannot check, so
+    those tools report undetermined. Namespace writes need Namespaces.Configure.
 
     Args:
         tool: One tool name on this server, e.g. "create_namespace". Omit to summarize every tool.

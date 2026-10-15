@@ -8,7 +8,9 @@ goes through two other APIs whose checks pyVmomi's metadata cannot describe:
   ``/api/vcenter/namespaces/...``, ``/api/vcenter/storage/policies``). Reading
   inventory there is System.Read; storage policies are StorageProfile.View.
   Creating, changing or deleting a namespace is checked against
-  Namespaces.Manage, which pyVmomi's metadata does not define; the family gate
+  Namespaces.Configure (on the cluster for create, on the namespace for update
+  and delete — Broadcom Automation API reference), which pyVmomi's metadata does
+  not define; the family gate
   lists it as a reviewed extra (to verify against a live privilegeList).
 * the Supervisor Kubernetes API (TKC, VM Service, kubeconfigs, storage usage),
   reached with a /wcp/login token. Kubernetes authorizes those calls with the
@@ -31,9 +33,9 @@ REQUIREMENTS: dict[str, list[str] | None] = {
     "list_supervisor_storage_policies": ["System.Read", "StorageProfile.View"],
     "list_namespaces": list(_READ),
     "get_namespace": list(_READ),
-    "create_namespace": ["System.Read", "Namespaces.Manage"],
-    "update_namespace": ["System.Read", "Namespaces.Manage"],
-    "delete_namespace": ["System.Read", "Namespaces.Manage"],
+    "create_namespace": ["System.Read", "Namespaces.Configure"],
+    "update_namespace": ["System.Read", "Namespaces.Configure"],
+    "delete_namespace": ["System.Read", "Namespaces.Configure"],
     "list_vm_classes": list(_READ),
     # Supervisor Kubernetes API: the namespace role decides (None); see above.
     "list_tkc_clusters": None,

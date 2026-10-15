@@ -15,7 +15,8 @@
 [--tool NAME] [-t TARGET]`) reports which account the server uses and, per tool, whether it holds the vSphere
 privileges the tool needs on the root folder. `not_granted_at_root` is not "no access"; `undetermined` is never read
 as granted. Kubernetes calls (TKC, VM Service, kubeconfigs) are authorized by the namespace's own view/edit/owner
-permission, which this cannot check, and namespace writes also need Namespaces.Manage, which it does not list yet.
+permission, which this cannot check, so those tools always report `undetermined`. Namespace writes are checked
+against Namespaces.Configure.
 24 MCP tools (15 read, 9 write).
 
 Requires `vmware-policy>=1.22.0`.

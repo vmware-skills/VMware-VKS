@@ -234,7 +234,7 @@ This skill follows a defense-in-depth approach with six security properties:
 
 5. **Prompt Injection Protection** -- All tool inputs are passed as typed Python parameters (`str`, `int`, `bool`), never interpolated into shell commands. No `eval`, `exec`, or subprocess calls with user-controlled data.
 
-6. **Least Privilege** -- 14/23 tools are read-only. `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` preview by default: without `confirm=True` they change nothing and return the blast radius, and `confirm=True` is refused while a blocker stands or part of the blast radius could not be read. The running-workload guard on `delete_tkc_cluster` can only be skipped with `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
+6. **Least Privilege** -- 15/24 tools are read-only. `create_namespace`, `create_tkc_cluster`, `delete_namespace` and `delete_tkc_cluster` preview by default: without `confirm=True` they change nothing and return the blast radius, and `confirm=True` is refused while a blocker stands or part of the blast radius could not be read. The running-workload guard on `delete_tkc_cluster` can only be skipped with `force=True`. All write operations are audit-logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy).
 
 ## Supported AI Platforms
 
