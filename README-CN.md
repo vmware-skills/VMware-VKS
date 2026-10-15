@@ -11,6 +11,14 @@ MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor �
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+## 升级到 3.0
+
+3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
+`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
+这个名字让 agent 以为只是读。参数、注解、安全门和 CLI 命令（`vmware-vks kubeconfig supervisor` / `kubeconfig get`）
+都不变；调用旧名字的客户端必须改。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
+详见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do)。
+
 ## 升级到 2.0
 
 2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_groups` →
@@ -157,8 +165,8 @@ pip install --no-index --find-links dist vmware-vks
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
-| `get_supervisor_kubeconfig` | Supervisor kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
-| `get_tkc_kubeconfig` | TKC kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
+| `issue_supervisor_kubeconfig` | Supervisor kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
+| `issue_tkc_kubeconfig` | TKC kubeconfig — 凭据（bearer token）；内联返回或写入仅属主可读的文件 | 写 |
 | `get_harbor_info` | 内置 Harbor 仓库信息（ID、集群、版本、URL、健康状态、已用存储） | 只读 |
 | `list_namespace_storage_usage` | PVC 列表和容量统计 | 只读 |
 
@@ -282,7 +290,7 @@ vmware-vks-mcp
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
 | 凭据安全 | 密码仅从环境变量（`.env` 文件）加载，不写入 `config.yaml` |
 | Kubeconfig 内存构建 | 本 skill 自身调用 API 时，Supervisor/TKC kubeconfig（含 Supervisor bearer token）以内存 dict 形式构建并通过 `load_kube_config_from_dict()` 加载 — 不会写入磁盘临时文件（v1.5.18+） |
-| Kubeconfig 属于凭据访问 | `get_supervisor_kubeconfig` / `get_tkc_kubeconfig` 返回有效期以小时计的 bearer token：标注 `readOnlyHint: false`（客户端会先询问）、`risk_level: medium`，审计记录中 kubeconfig 被脱敏。仅在用户明确要求时调用；用 `output_path` / `-o` 导出到仅属主可读（0600）的文件 |
+| Kubeconfig 属于凭据访问 | `issue_supervisor_kubeconfig` / `issue_tkc_kubeconfig` 返回有效期以小时计的 bearer token：标注 `readOnlyHint: false`（客户端会先询问）、`risk_level: medium`，审计记录中 kubeconfig 被脱敏。仅在用户明确要求时调用；用 `output_path` / `-o` 导出到仅属主可读（0600）的文件 |
 | 审计日志 | 所有写操作记录到 `~/.vmware-vks/audit.log` |
 | stdio 传输 | 无网络监听端口；MCP 通过 stdio 运行 |
 

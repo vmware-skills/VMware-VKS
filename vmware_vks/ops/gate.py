@@ -245,7 +245,7 @@ def measure_tkc_delete(
     if workloads:
         listed = ", ".join(f"{w['kind']}/{w['name']}" for w in workloads[:5])
         blockers.append(
-            f"{len(workloads)} running workload(s). Drain them (get_tkc_kubeconfig), "
+            f"{len(workloads)} running workload(s). Drain them (issue_tkc_kubeconfig), "
             f"or re-run delete_tkc_cluster with force=True to delete anyway. "
             f"Running: {listed}."
         )

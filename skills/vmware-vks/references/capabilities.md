@@ -10,7 +10,7 @@ Each operation is classified by autonomy level per the Enterprise Harness Engine
 |:-:|---|---|---|
 | **L1** | Read-only, raw data | Always auto-run | `check_vks_compatibility`, `get_supervisor_status`, `list_supervisor_storage_policies`, `list_namespaces`, `get_namespace`, TKC list/get, `get_harbor_info`, `list_namespace_storage_usage` |
 | **L2** | Read + analysis / recommendation | Always auto-run | namespace quota analysis, TKC health correlation, storage policy compatibility checks |
-| **Credential** | Returns live access material (bearer token) | **Never auto-run** — only on explicit user request; write to a file, report the path | `get_supervisor_kubeconfig`, `get_tkc_kubeconfig` |
+| **Credential** | Returns live access material (bearer token) | **Never auto-run** — only on explicit user request; write to a file, report the path | `issue_supervisor_kubeconfig`, `issue_tkc_kubeconfig` |
 | **L3** | Single write — user must approve | Only after explicit confirmation; destructive ops require double-confirm + `--dry-run` | `create_namespace`, `update_namespace`, `delete_namespace`, `create_tkc_cluster`, `upgrade_tkc_cluster`, `scale_tkc_cluster`, `delete_tkc_cluster` |
 | **L4** | Multi-step plan / apply workflow | Plan generation auto; apply gated by user approval | *(roadmap — TKC fleet upgrades, multi-namespace bootstrapping plans)* |
 | **L5** | Auto-remediation from learned pattern | Pattern library only; requires `risk:low` + `reversible:true` + `repeatable:true` | *(roadmap — candidates: stuck TKC reconciliation, namespace quota bumps)* |
@@ -72,8 +72,8 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 
 | Tool | What it returns |
 |------|----------------|
-| `get_supervisor_kubeconfig` | **Credential.** Kubeconfig for the Supervisor K8s API (bearer token); inline or written to an owner-only file |
-| `get_tkc_kubeconfig` | **Credential.** Kubeconfig for one TKC cluster (bearer token); inline or written to an owner-only file |
+| `issue_supervisor_kubeconfig` | **Credential.** Kubeconfig for the Supervisor K8s API (bearer token); inline or written to an owner-only file |
+| `issue_tkc_kubeconfig` | **Credential.** Kubeconfig for one TKC cluster (bearer token); inline or written to an owner-only file |
 | `get_harbor_info` | Per registry: `id`, `cluster`, `version`, `url`, `status` (health), `storage_used_mb` — status/storage come from a per-registry detail call and are null if it fails. Never returns credentials |
 | `list_namespace_storage_usage` | PVC list and usage stats per Namespace |
 

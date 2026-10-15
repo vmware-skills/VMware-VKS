@@ -19,7 +19,7 @@
       "files": [],
       "expectations": [
         "Uses scale_tkc_cluster with worker_count=5",
-        "Uses get_tkc_kubeconfig with output_path to write the kubeconfig to a file",
+        "Uses issue_tkc_kubeconfig with output_path to write the kubeconfig to a file",
         "Reports the file path and does not print the kubeconfig or its token"
       ]
     },

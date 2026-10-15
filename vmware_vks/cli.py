@@ -810,7 +810,7 @@ def _emit_kubeconfig(kubeconfig: str) -> None:
 # as the matching MCP tools; prefer -o so the token is not printed.
 @kubeconfig_app.command("supervisor")
 @_cli_errors
-@guarded("get_supervisor_kubeconfig", risk_level="medium")
+@guarded("issue_supervisor_kubeconfig", risk_level="medium")
 def kubeconfig_supervisor(
     namespace: str = typer.Option(..., "-n", "--namespace"),
     output: Optional[Path] = typer.Option(
@@ -832,7 +832,7 @@ def kubeconfig_supervisor(
 
 @kubeconfig_app.command("get")
 @_cli_errors
-@guarded("get_tkc_kubeconfig", risk_level="medium")
+@guarded("issue_tkc_kubeconfig", risk_level="medium")
 def kubeconfig_get(
     name: str = typer.Argument(...),
     namespace: str = typer.Option(..., "-n", "--namespace"),

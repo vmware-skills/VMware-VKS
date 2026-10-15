@@ -14,7 +14,7 @@ allowed-tools:
 metadata: {"openclaw":{"requires":{"anyBins":["vmware-vks","uvx"]},"optional":{"env":["VMWARE_VKS_CONFIG","VMWARE_VKS_<TARGET>_PASSWORD","VMWARE_VKS_<TARGET>_USERNAME","VMWARE_AUDIT_APPROVED_BY"],"bins":["vmware-policy"]},"homepage":"https://github.com/vmware-skills/VMware-VKS","emoji":"☸️","os":["macos","linux"]}}
 compatibility: >
   vmware-policy auto-installed as Python dependency (provides @vmware_tool decorator and audit logging). MCP tool calls and remote CLI commands audited to ~/.vmware/audit.db (SQLite, via vmware-policy); write operations also mirrored to ~/.vmware-vks/audit.log.
-  Credentials: Each vCenter target requires a per-target password env var in ~/.vmware-vks/.env following the pattern VMWARE_VKS_<TARGET_NAME_UPPER>_PASSWORD (e.g., target "vcenter-01" → VMWARE_VKS_VCENTER_01_PASSWORD). Passwords are never logged, never echoed, never included in audit entries. get_supervisor_kubeconfig and get_tkc_kubeconfig are credential access, not reads: the kubeconfig embeds a Supervisor bearer token (JWT from /wcp/login) that acts as the configured vCenter account until it expires (typically hours, independent of this process). Both are annotated readOnlyHint=false so MCP clients ask before running them; call them only on explicit user request and write the result to an owner-only (0600) file with output_path / -o rather than printing it. The audit log records the call but redacts the returned kubeconfig.
+  Credentials: Each vCenter target requires a per-target password env var in ~/.vmware-vks/.env following the pattern VMWARE_VKS_<TARGET_NAME_UPPER>_PASSWORD (e.g., target "vcenter-01" → VMWARE_VKS_VCENTER_01_PASSWORD). Passwords are never logged, never echoed, never included in audit entries. issue_supervisor_kubeconfig and issue_tkc_kubeconfig are credential access, not reads: the kubeconfig embeds a Supervisor bearer token (JWT from /wcp/login) that acts as the configured vCenter account until it expires (typically hours, independent of this process). Both are annotated readOnlyHint=false so MCP clients ask before running them; call them only on explicit user request and write the result to an owner-only (0600) file with output_path / -o rather than printing it. The audit log records the call but redacts the returned kubeconfig.
 ---
 
 # VMware VKS
@@ -40,7 +40,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 23 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==2.0.0
+uv tool install vmware-vks==3.0.0
 vmware-vks check
 ```
 
@@ -175,8 +175,8 @@ to be guessed from the row count. These three read their collection in one un-pa
 | **VM Service** | `list_vm_service_snapshots` | Read |
 | | `list_vm_service_groups` | Read |
 | | `list_vm_service_network_interfaces` | Read |
-| **Access** | `get_supervisor_kubeconfig` | Write (credential) |
-| | `get_tkc_kubeconfig` | Write (credential) |
+| **Access** | `issue_supervisor_kubeconfig` | Write (credential) |
+| | `issue_tkc_kubeconfig` | Write (credential) |
 | | `get_harbor_info` | Read |
 | | `list_namespace_storage_usage` | Read |
 
@@ -184,7 +184,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 
 `confirm=True` is refused while a blocker stands — TKC clusters inside a namespace, running workloads in a cluster (unless `force=True`), a name already taken — or when any part of the blast radius could not be read. `confirmed` and `dry_run` are deprecated aliases until the next minor release.
 
-**Credential access**: `get_supervisor_kubeconfig` and `get_tkc_kubeconfig` are not reads. The kubeconfig embeds a Supervisor bearer token (JWT from `/wcp/login`) that acts as the configured vCenter account until it expires — typically hours, and not revoked when vmware-vks exits. So:
+**Credential access**: `issue_supervisor_kubeconfig` and `issue_tkc_kubeconfig` are not reads. The kubeconfig embeds a Supervisor bearer token (JWT from `/wcp/login`) that acts as the configured vCenter account until it expires — typically hours, and not revoked when vmware-vks exits. So:
 - Run them only when the user explicitly asks for a kubeconfig; never auto-run them or fetch one as a side step. Both are annotated `readOnlyHint: false` (MCP clients ask first) and `risk_level: medium` (so an operator's `min_risk_level: medium` deny rule covers them).
 - Always pass `output_path` (MCP) or `-o <path>` (CLI) and report only the path. The file is created owner-only (0600) — also when it replaces an existing file — and a symlink target is refused. Delete it when no longer needed.
 - The audit row records who fetched which kubeconfig, but the returned kubeconfig is redacted (`sensitive_result=True`).
@@ -275,7 +275,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==2.0.0
+uv tool install vmware-vks==3.0.0
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```

@@ -2,7 +2,7 @@
 
 2026-09-11, ClawHub security review of the published skill. Both kubeconfig
 tools hand back a live Supervisor bearer token (the JWT from ``/wcp/login``),
-yet ``get_supervisor_kubeconfig`` — the higher-privileged of the two — was
+yet ``issue_supervisor_kubeconfig`` — the higher-privileged of the two — was
 annotated ``readOnlyHint: true`` and listed as "L1, always auto-run" in the
 docs. ``readOnlyHint`` is what an MCP client consults to decide whether to run a
 tool without asking, so the one tool that most needed a human in the loop was
@@ -47,7 +47,7 @@ KUBECONFIG = (
     f"  user:\n    token: {TOKEN}\n"
 )
 
-KUBECONFIG_TOOLS = ("get_supervisor_kubeconfig", "get_tkc_kubeconfig")
+KUBECONFIG_TOOLS = ("issue_supervisor_kubeconfig", "issue_tkc_kubeconfig")
 
 
 @pytest.fixture
@@ -91,15 +91,15 @@ def test_kubeconfig_tools_are_sensitive_and_not_low_risk(tool):
 @pytest.mark.unit
 @pytest.mark.parametrize(
     ("command", "tool"),
-    [("kubeconfig_supervisor", "get_supervisor_kubeconfig"),
-     ("kubeconfig_get", "get_tkc_kubeconfig")],
+    [("kubeconfig_supervisor", "issue_supervisor_kubeconfig"),
+     ("kubeconfig_get", "issue_tkc_kubeconfig")],
 )
 def test_cli_kubeconfig_commands_are_guarded_at_the_mcp_risk_level(command, tool):
     """One deny rule must scope both surfaces (HLD I-3).
 
     Deny rules match on the tool *name*, so the risk level alone is not enough:
     ``kubeconfig get`` was guarded as ``kubeconfig_get`` (the default, the
-    function's ``__name__``), and a rule denying ``get_tkc_kubeconfig`` stopped
+    function's ``__name__``), and a rule denying ``issue_tkc_kubeconfig`` stopped
     the MCP tool while the CLI handed the same token out.
     """
     fn = getattr(cli, command)

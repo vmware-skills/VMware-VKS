@@ -11,6 +11,15 @@ MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Super
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+## Upgrading to 3.0
+
+3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
+`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
+read something, and a `get_` name told agents otherwise. Parameters, annotations, safety and CLI commands
+(`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch. Deny
+rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-policy ≥ 1.19.0. Details in
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do).
+
 ## Upgrading to 2.0
 
 2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` →
@@ -161,8 +170,8 @@ pip install --no-index --find-links dist vmware-vks
 
 | Tool | Description | Type |
 |------|-------------|------|
-| `get_supervisor_kubeconfig` | Supervisor kubeconfig — credential (bearer token); inline or owner-only file | Write |
-| `get_tkc_kubeconfig` | TKC kubeconfig — credential (bearer token); inline or owner-only file | Write |
+| `issue_supervisor_kubeconfig` | Supervisor kubeconfig — credential (bearer token); inline or owner-only file | Write |
+| `issue_tkc_kubeconfig` | TKC kubeconfig — credential (bearer token); inline or owner-only file | Write |
 | `get_harbor_info` | Embedded Harbor registry info (id, cluster, version, URL, health, storage used) | Read |
 | `list_namespace_storage_usage` | PVC list and capacity stats | Read |
 
@@ -294,7 +303,7 @@ vmware-vks-mcp
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |
 | Credential safety | Passwords only from environment variables (`.env` file), never in `config.yaml` |
 | In-memory kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig (with the Supervisor bearer token) is built as an in-memory dict and loaded via `load_kube_config_from_dict()` — never written to a temp file on disk (v1.5.18+) |
-| Kubeconfig is credential access | `get_supervisor_kubeconfig` / `get_tkc_kubeconfig` return a bearer token valid for hours: annotated `readOnlyHint: false` (clients ask first), `risk_level: medium`, audit row redacts the kubeconfig. Run only on explicit request; export with `output_path` / `-o` to an owner-only (0600) file |
+| Kubeconfig is credential access | `issue_supervisor_kubeconfig` / `issue_tkc_kubeconfig` return a bearer token valid for hours: annotated `readOnlyHint: false` (clients ask first), `risk_level: medium`, audit row redacts the kubeconfig. Run only on explicit request; export with `output_path` / `-o` to an owner-only (0600) file |
 | Audit logging | All write operations logged to `~/.vmware-vks/audit.log` |
 | stdio transport | No network listener; MCP runs over stdio only |
 

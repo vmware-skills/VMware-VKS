@@ -18,7 +18,7 @@ vmware-vks exposes 23 MCP tools. Two things make it distinctive for a small
 model: deleting a namespace or a Tanzu Kubernetes cluster destroys running
 workloads, and two of its tools hand back live credentials — a kubeconfig
 whose bearer token acts as the configured vCenter account for hours.
-`get_supervisor_kubeconfig` and `get_tkc_kubeconfig` are credential access, not
+`issue_supervisor_kubeconfig` and `issue_tkc_kubeconfig` are credential access, not
 reads: both are annotated `readOnlyHint: false`, so an MCP client that honours
 the annotation asks before running them.
 
@@ -99,7 +99,7 @@ your agent's instruction block.
 
 ## Credentials and writes in vmware-vks
 
-- get_supervisor_kubeconfig and get_tkc_kubeconfig return credentials. Call
+- issue_supervisor_kubeconfig and issue_tkc_kubeconfig return credentials. Call
   them only when the user explicitly asks for a kubeconfig — never as a step
   you decided on yourself, and never to "check access".
 - Never print a kubeconfig, session token or bearer token into the conversation.

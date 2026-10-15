@@ -1,6 +1,6 @@
 """A kubeconfig this skill hands out must not end up in ``~/.vmware/audit.db``.
 
-2026-08-30, real-hardware round. ``get_supervisor_kubeconfig``'s own docstring
+2026-08-30, real-hardware round. ``issue_supervisor_kubeconfig``'s own docstring
 says the kubeconfig "carries a short-lived session token — treat it as a
 credential, do not log or share", and the ``@vmware_tool`` decorator wrapping it
 was writing that return value verbatim into the shared audit database. The audit
@@ -16,7 +16,7 @@ this skill's shape cannot fail (CLAUDE.md 形态 #3).
 
 The second finding from the same round is pinned here too: three tools in the
 family annotated ``readOnlyHint: true`` write files on the local machine, and
-``get_tkc_kubeconfig`` is one of them — ``output_path`` truncates a
+``issue_tkc_kubeconfig`` is one of them — ``output_path`` truncates a
 caller-chosen file. ``readOnlyHint`` is what an MCP client consults to decide
 whether a tool needs confirming, so an annotation that lies is a safety control
 that silently does not apply.
@@ -83,7 +83,7 @@ def test_supervisor_kubeconfig_token_is_not_in_the_audit_db(audit_db, monkeypatc
 
     monkeypatch.setattr(kc, "get_supervisor_kubeconfig_str", lambda si, ns: KUBECONFIG)
 
-    result = srv.get_supervisor_kubeconfig(namespace="ns-prod", target="vc1")
+    result = srv.issue_supervisor_kubeconfig(namespace="ns-prod", target="vc1")
 
     assert result["kubeconfig"] == KUBECONFIG, "the caller must still get the real thing"
     assert TOKEN not in _row_text(audit_db)
@@ -99,7 +99,7 @@ def test_tkc_kubeconfig_token_is_not_in_the_audit_db(audit_db, monkeypatch):
         lambda si, name, ns, output_path=None: {"cluster": name, "kubeconfig": KUBECONFIG},
     )
 
-    result = srv.get_tkc_kubeconfig(name="tkc-1", namespace="ns-prod", target="vc1")
+    result = srv.issue_tkc_kubeconfig(name="tkc-1", namespace="ns-prod", target="vc1")
 
     assert result["kubeconfig"] == KUBECONFIG
     assert TOKEN not in _row_text(audit_db)
@@ -113,14 +113,14 @@ def test_the_audit_row_still_says_who_called_what_and_whether_it_worked(audit_db
     from vmware_vks.ops import kubeconfig as kc
 
     monkeypatch.setattr(kc, "get_supervisor_kubeconfig_str", lambda si, ns: KUBECONFIG)
-    srv.get_supervisor_kubeconfig(namespace="ns-prod", target="vc1")
+    srv.issue_supervisor_kubeconfig(namespace="ns-prod", target="vc1")
 
     conn = sqlite3.connect(str(audit_db))
     conn.row_factory = sqlite3.Row
     row = dict(conn.execute("SELECT * FROM audit_log").fetchone())
     conn.close()
 
-    assert row["tool"] == "get_supervisor_kubeconfig"
+    assert row["tool"] == "issue_supervisor_kubeconfig"
     assert row["status"] == "ok"
     assert row["user"]
     assert row["ts"]
@@ -164,8 +164,8 @@ def test_an_ordinary_tools_result_is_still_recorded(audit_db, monkeypatch):
 @pytest.mark.unit
 def test_both_kubeconfig_tools_declare_their_result_sensitive():
     """The declaration is the contract; the key net is only the backstop."""
-    assert srv.get_supervisor_kubeconfig._sensitive_result is True
-    assert srv.get_tkc_kubeconfig._sensitive_result is True
+    assert srv.issue_supervisor_kubeconfig._sensitive_result is True
+    assert srv.issue_tkc_kubeconfig._sensitive_result is True
 
 
 @pytest.mark.unit
@@ -176,13 +176,13 @@ def test_get_tkc_kubeconfig_is_not_advertised_read_only():
     MCP client must be told to confirm rather than auto-run it.
     """
     tools = {t.name: t for t in asyncio.run(srv.mcp.list_tools())}
-    assert tools["get_tkc_kubeconfig"].annotations.readOnlyHint is False
+    assert tools["issue_tkc_kubeconfig"].annotations.readOnlyHint is False
     # This line used to assert the Supervisor neighbour "genuinely writes
     # nothing locally" and so stays a read. That stopped being true when it
     # gained output_path, and the assertion kept the stale annotation pinned in
     # place. Both tools are credential access now; see
     # test_kubeconfig_is_credential_access.py.
-    assert tools["get_supervisor_kubeconfig"].annotations.readOnlyHint is False
+    assert tools["issue_supervisor_kubeconfig"].annotations.readOnlyHint is False
 
 
 #: Helpers whose whole job is to put bytes on this machine's disk.
@@ -191,7 +191,7 @@ _FS_WRITERS = frozenset(
         "_write_kubeconfig_file",
         "write_kubeconfig",
         # Missing until 2026-09-11, so the scan below could not see that
-        # get_supervisor_kubeconfig (then readOnlyHint=true) writes a file.
+        # issue_supervisor_kubeconfig (then readOnlyHint=true) writes a file.
         "write_supervisor_kubeconfig",
         "write_text",
         "write_bytes",
@@ -225,8 +225,8 @@ def test_the_filesystem_writer_scan_actually_detects_one():
     the one tool known to write: if this stops detecting ``write_kubeconfig``,
     the scan below has quietly become a check that can never fail.
     """
-    assert _fs_writers_called_by("get_tkc_kubeconfig") == ["write_kubeconfig"]
-    assert _fs_writers_called_by("get_supervisor_kubeconfig") == [
+    assert _fs_writers_called_by("issue_tkc_kubeconfig") == ["write_kubeconfig"]
+    assert _fs_writers_called_by("issue_supervisor_kubeconfig") == [
         "write_supervisor_kubeconfig"
     ]
 

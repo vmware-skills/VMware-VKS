@@ -615,7 +615,7 @@ def delete_tkc_cluster(
         if workloads:
             raise VksSafetyError(
                 f"Cannot delete TKC cluster '{name}': {len(workloads)} running "
-                f"workload(s) detected. Remove them first — get_tkc_kubeconfig "
+                f"workload(s) detected. Remove them first — issue_tkc_kubeconfig "
                 f"gives you a kubeconfig to drain the cluster — or re-run "
                 f"delete_tkc_cluster with force=True to delete anyway. Running: "
                 f"{', '.join(w['kind'] + '/' + w['name'] for w in workloads[:5])}."

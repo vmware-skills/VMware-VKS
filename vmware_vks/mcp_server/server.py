@@ -640,7 +640,7 @@ def list_tkc_clusters(namespace: Optional[str] = None, target: Optional[str] = N
     Returns the family list envelope: {items: [{name, namespace, phase,
     k8s_version}], returned, limit, total, truncated, hint}. The Supervisor
     list is walked to completion, so truncated is always False. Start here, then call get_tkc_cluster for full detail or
-    get_tkc_kubeconfig for access. 'clusters' is a deprecated pre-1.8.0 alias
+    issue_tkc_kubeconfig for access. 'clusters' is a deprecated pre-1.8.0 alias
     of 'items', removed in 2.0 — read 'items'.
 
     Args:
@@ -961,12 +961,12 @@ def delete_tkc_cluster(
 # true of this tool too when output_path was added, and the annotation stayed.
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="medium", sensitive_result=True)
-def get_supervisor_kubeconfig(
+def issue_supervisor_kubeconfig(
     namespace: str,
     output_path: Optional[str] = None,
     target: Optional[str] = None,
 ) -> dict:
-    """[WRITE] Credential access: get a kubeconfig for the Supervisor K8s API.
+    """[WRITE] Credential access: issue a kubeconfig for the Supervisor K8s API.
 
     Call only when the user explicitly asks for this kubeconfig; never as a
     side step. Returns {namespace, kubeconfig} as a YAML string, or
@@ -975,7 +975,7 @@ def get_supervisor_kubeconfig(
     configured vCenter account until the JWT expires (typically hours; not
     tied to this process) — always pass output_path so the token never
     enters agent context, and report only the path. The file is created
-    owner-only (0600). Use get_tkc_kubeconfig instead to reach workloads
+    owner-only (0600). Use issue_tkc_kubeconfig instead to reach workloads
     inside a TKC cluster.
 
     Args:
@@ -1003,13 +1003,13 @@ def get_supervisor_kubeconfig(
 # to a path the operator just typed is friction without a hazard behind it.
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="medium", sensitive_result=True)
-def get_tkc_kubeconfig(
+def issue_tkc_kubeconfig(
     name: str,
     namespace: str,
     output_path: Optional[str] = None,
     target: Optional[str] = None,
 ) -> dict:
-    """[WRITE] Credential access: get a kubeconfig for one TKC cluster.
+    """[WRITE] Credential access: issue a kubeconfig for one TKC cluster.
 
     Call only when the user explicitly asks for this kubeconfig; never as a
     side step. Returns {cluster, kubeconfig}, or {cluster, written_to} when
@@ -1021,7 +1021,7 @@ def get_tkc_kubeconfig(
     and truncates the named file (owner-only, 0600), so
     output_path='~/.kube/config' replaces the user's own kubeconfig. Run
     list_tkc_clusters first for name and namespace; use
-    get_supervisor_kubeconfig instead for Supervisor-level access.
+    issue_supervisor_kubeconfig instead for Supervisor-level access.
 
     Args:
         name: TKC cluster name.

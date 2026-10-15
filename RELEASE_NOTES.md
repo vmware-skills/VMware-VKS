@@ -1,3 +1,22 @@
+## v3.0.0 — kubeconfig tools are named for what they do
+
+Two MCP tools are renamed. Both hand back a kubeconfig that embeds a live Supervisor bearer token (JWT from
+`/wcp/login`) acting as the configured vCenter account for hours. That is issuing a credential, not reading
+something — the tools have been annotated `readOnlyHint: false` since 1.x, but a `get_` name still told agents
+(and people writing deny rules) that they only read. The family's verb-first convention reserves `get_` for reads.
+
+| Old name (2.x) | New name (3.0.0) |
+|---|---|
+| `get_supervisor_kubeconfig` | `issue_supervisor_kubeconfig` |
+| `get_tkc_kubeconfig` | `issue_tkc_kubeconfig` |
+
+* The server exposes only the new names. Clients, prompts and saved workflows that call the old names must switch.
+* CLI commands are unchanged (`vmware-vks kubeconfig supervisor`, `vmware-vks kubeconfig get`); their audit rows
+  now carry the new tool names.
+* Parameters, annotations (`risk_level="medium"`, `sensitive_result=True`) and behaviour are unchanged.
+* Deny rules in `~/.vmware/rules.yaml` written with the old names keep working with vmware-policy ≥ 1.19.0, which
+  matches both names; `vmware-audit policy` lists any rule that now matches more.
+
 ## v2.0.0 — MCP tools renamed verb-first
 
 The family now follows one naming convention for MCP tools: the verb comes first, and a domain word is added

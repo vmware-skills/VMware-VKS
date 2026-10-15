@@ -38,7 +38,7 @@ All write operations pass through multiple safety layers:
 
 ### Kubeconfig Security
 
-- `get_supervisor_kubeconfig` and `get_tkc_kubeconfig` are **credential access**: the kubeconfig embeds a Supervisor bearer token (JWT from `POST /wcp/login`) that acts as the configured vCenter account until it expires — typically hours, and not revoked when vmware-vks exits
+- `issue_supervisor_kubeconfig` and `issue_tkc_kubeconfig` are **credential access**: the kubeconfig embeds a Supervisor bearer token (JWT from `POST /wcp/login`) that acts as the configured vCenter account until it expires — typically hours, and not revoked when vmware-vks exits
 - Both MCP tools are annotated `readOnlyHint: false` (MCP clients ask before running them) and `risk_level: medium`; the matching CLI commands are `@guarded` at the same level. Call them only on explicit user request
 - With `output_path` (MCP) / `-o` (CLI) the kubeconfig is written to an owner-only (0600) file — also when it replaces an existing file — and a symlink target is refused. Without it, the kubeconfig is returned inline, which puts the token into the agent's context; always prefer a file
 - The audit row records the retrieval (who, when, which namespace/cluster, output path) but the returned kubeconfig is redacted (`sensitive_result=True`)

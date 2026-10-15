@@ -89,7 +89,7 @@ def test_no_hint_text_is_shared_by_more_than_one_handler():
 
 
 def test_the_supervisor_kubeconfig_can_avoid_agent_context():
-    params = inspect.signature(srv.get_supervisor_kubeconfig).parameters
+    params = inspect.signature(srv.issue_supervisor_kubeconfig).parameters
     assert "output_path" in params, (
         "the higher-privileged kubeconfig still has no way out of the transcript, "
         "while its sibling's docstring recommends exactly that"
