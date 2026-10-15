@@ -367,6 +367,64 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 | **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW microsegmentation, security groups, Traceflow | 21 | `uv tool install vmware-nsx-security` |
 | **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops metrics, alerts, capacity planning | 28 | `uv tool install vmware-aria` |
 
+<!-- usage: remote-and-exposure -->
+## Remote access (HTTPS) and limiting tools
+
+By default `vmware-vks mcp` speaks stdio to one local client and offers every tool. Two options change that
+(vmware-policy ≥ 1.21.0).
+
+**Serve over HTTPS** so clients on other machines can connect. Every caller needs a bearer token:
+
+```bash
+vmware-audit token create alice          # prints the token once; give it to alice
+vmware-audit token list                  # names only
+vmware-audit token revoke alice          # refused from its next request, no restart
+vmware-vks mcp --transport https --host 0.0.0.0 --port 8443 \
+    --cert /etc/vmware-mcp/server.pem --key /etc/vmware-mcp/server-key.pem \
+    --public-name mcp.example.com
+```
+
+Connect a client (Claude Code shown; any MCP client that supports streamable HTTP and custom headers works):
+
+```bash
+claude mcp add --transport http vmware-vks https://mcp.example.com:8443/mcp \
+    --header "Authorization: Bearer $VMWARE_MCP_TOKEN"
+```
+
+```json
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "type": "http",
+      "url": "https://mcp.example.com:8443/mcp",
+      "headers": { "Authorization": "Bearer ${VMWARE_MCP_TOKEN}" }
+    }
+  }
+}
+```
+
+- The server will not start without a token, refuses Host/Origin values outside `--public-name`, and checks
+  before it binds that unauthenticated requests get 401. Use a certificate your clients trust for those names.
+- Behind a TLS-terminating reverse proxy on the same machine use `--transport http --host 127.0.0.1
+  --public-name mcp.example.com` and pass the `Authorization` header through.
+- The audit log records each caller as `token:<name>`. Calls naming different targets run in parallel; calls that
+  name no target run one at a time, so name the target when several people share a server.
+- **Everyone who can reach the endpoint acts with this server's account.** Tokens identify callers; they grant
+  nothing on the platform. Run one endpoint per privilege level.
+
+**Offer only read tools, plus the writes you choose:**
+
+```bash
+vmware-vks mcp --expose read --allow-write create_namespace
+# or: VMWARE_VKS_MCP_EXPOSE=read VMWARE_VKS_MCP_ALLOW_WRITE=create_namespace vmware-vks mcp
+```
+
+Tools not offered do not appear in the client's tool list. A bad value or an unknown write tool stops the server
+(exit 2). This limits what clients are offered; it is not authorization, so the account itself should be
+least-privilege.
+
+Details: `skills/vmware-vks/references/setup-guide.md` ("Serving MCP over HTTPS", "Limiting which tools are offered").
+
 ## License
 
 [MIT](LICENSE)
