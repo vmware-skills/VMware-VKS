@@ -1,3 +1,22 @@
+## v3.2.0 — serve MCP over HTTPS
+
+`vmware-vks mcp` can now serve the network as well as stdio (HLD §16, via vmware-policy 1.21.0):
+
+```bash
+vmware-audit token create alice          # once per caller; shown once
+vmware-vks mcp --transport https --host 0.0.0.0 --port 8443 \
+    --cert server.pem --key server-key.pem --public-name mcp.example.com
+```
+
+* Every request needs `Authorization: Bearer <token>`; the server will not start without a token, refuses Host or
+  Origin values outside `--public-name`, and checks itself (unauthenticated requests must get 401) before it
+  binds. `--transport http` binds loopback only, for a TLS-terminating reverse proxy.
+* Audit rows record the caller as `token:<name>` and the surface as `mcp-https`. Calls naming different targets
+  run in parallel; calls naming no target run one at a time.
+* stdio remains the default; the `vmware-vks-mcp` console script and `python -m` are unchanged.
+* Everyone who can reach the endpoint acts with this server's account; run one endpoint per privilege level.
+* Requires `vmware-policy>=1.21.0` and `mcp>=1.28`.
+
 ## v3.1.0 — offer only read tools, plus chosen write tools
 
 `vmware-vks mcp` can now offer a subset of this server's tools (HLD §17 D-16, via vmware-policy 1.20.0):

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-vks"
-version = "3.1.0"
+version = "3.2.0"
 description = "MCP Skill + CLI for managing vSphere with Tanzu (VKS) — Supervisor, Namespaces, and TanzuKubernetesCluster lifecycle"
 readme = "README.md"
 license = { text = "MIT" }
@@ -17,8 +17,8 @@ dependencies = [
     "typer>=0.12,<1.0",
     "rich>=13.0,<15.0",
     "python-dotenv>=1.0,<2.0",
-    "mcp[cli]>=1.10,<2.0",
-    "vmware-policy>=1.20.0,<2.0",
+    "mcp[cli]>=1.28,<2.0",
+    "vmware-policy>=1.21.0,<2.0",
 ]
 
 [project.scripts]
