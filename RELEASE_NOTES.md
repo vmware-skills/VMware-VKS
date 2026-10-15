@@ -1,4 +1,4 @@
-## Unreleased — calls run side by side on one target; `get_access_info`
+## v3.3.0 — calls run side by side on one target; `get_access_info`
 
 **Concurrent calls (HLD §16 D-13(2)).** On a shared HTTPS server, calls no longer wait for each other:
 
