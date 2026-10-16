@@ -40,3 +40,7 @@ def _environment_for(target: str | None) -> str:
 # to ALLOW. Keyed, a resolver only ever answers for its own skill, so
 # registering at import time is safe again.
 set_environment_resolver(_environment_for, skill=skill_name(__name__))
+
+
+# Role metadata (HLD §18) is declared beside the environment resolver, on every surface.
+import vmware_vks.policy_roles  # noqa: F401
