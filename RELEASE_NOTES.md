@@ -1,4 +1,4 @@
-## Unreleased — tools may not touch this server's own control files
+## v3.3.2 — tools may not touch this server's own control files
 
 * **Security fix (HLD §18 step 0).** `issue_*_kubeconfig(output_path)` could name this server's own files, so over HTTPS a token holder could
   overwrite `$OPS_HOME/mcp-tokens` or `rules.yaml`, or read a skill's `.env`. A path that resolves into `$OPS_HOME`,
