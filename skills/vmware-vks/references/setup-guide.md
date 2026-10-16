@@ -8,13 +8,13 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS#v3.3.2
+npx skills add vmware-skills/VMware-VKS#v3.4.0
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
-clawhub install @zw008/vmware-vks --version 3.3.2
+clawhub install @zw008/vmware-vks --version 3.4.0
 
 # Via PyPI (recommended for version pinning)
-uv tool install vmware-vks==3.3.2
+uv tool install vmware-vks==3.4.0
 ```
 
 ### Claude Code
@@ -40,7 +40,7 @@ The `vmware-vks` package installs a Python CLI binary and its dependencies (pyVm
 ### Development Install
 
 ```bash
-git clone --branch v3.3.2 https://github.com/vmware-skills/VMware-VKS.git
+git clone --branch v3.4.0 https://github.com/vmware-skills/VMware-VKS.git
 cd VMware-VKS
 uv venv && source .venv/bin/activate
 uv pip install -e .
@@ -58,7 +58,7 @@ uv pip install -e .
 
 ```bash
 # 1. Install from PyPI
-uv tool install vmware-vks==3.3.2
+uv tool install vmware-vks==3.4.0
 
 # 2. Configure
 mkdir -p ~/.vmware-vks
@@ -176,6 +176,7 @@ vmware-vks mcp --transport https --host 0.0.0.0 --port 8443 \
 - **Everyone who can reach the endpoint acts with this server's account.** Tokens identify callers; they grant
   nothing on the platform. Run one endpoint per privilege level (for example a read-only account behind
   `--expose read`, and a separate endpoint for operators).
+- **Several people or roles on one endpoint:** give each token a role (`vmware-audit token create NAME --role reader`, or a role in `roles.yaml` naming tools and targets; vmware-policy ≥ 1.24.0). A role limits what the token may call on this endpoint; it cannot grant more than the account has. See vmware-policy's README, "Roles for network callers".
 
 ## Usage Mode
 

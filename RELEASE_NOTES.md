@@ -1,3 +1,11 @@
+## v3.4.0 — roles for network callers (HLD §18)
+
+* Declares the role metadata vmware-policy ≥ 1.24.0 needs to apply **roles** to this server over HTTPS
+  (HLD §18): how a missing target resolves, and that `issue_supervisor_kubeconfig` and `issue_tkc_kubeconfig` escape a role (they issue a Supervisor token that acts as the account). With an older vmware-policy nothing changes. Once an operator runs
+  `vmware-audit roles enable`, a token's role decides which tools and targets it may use here; a refused call is
+  audited as `denied`. See vmware-policy's README, "Roles for network callers".
+* README and setup guide: one endpoint for several people or roles.
+
 ## v3.3.2 — tools may not touch this server's own control files
 
 * **Security fix (HLD §18 step 0).** `issue_*_kubeconfig(output_path)` could name this server's own files, so over HTTPS a token holder could
