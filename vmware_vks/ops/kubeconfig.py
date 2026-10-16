@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pyVmomi.vim import ServiceInstance
 
+from vmware_policy.hostpaths import check_host_path
+
 from vmware_vks.errors import VksApiError
 
 _log = logging.getLogger("vmware-vks.ops.kubeconfig")
@@ -116,8 +118,10 @@ def _write_kubeconfig_file(output_path: Path, content: str) -> Path:
     following it, so a link swapped in after the check cannot redirect the token.
 
     The user/agent may still choose any directory they have write access to —
-    that is the function's purpose; we only block symlink redirection.
+    that is the function's purpose; we only block symlink redirection — and
+    this server's own config, tokens and audit log (HLD §18 step 0).
     """
+    check_host_path(output_path)
     target = Path(output_path).expanduser()
 
     if target.is_symlink():
