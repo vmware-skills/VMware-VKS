@@ -402,6 +402,8 @@ claude mcp add --transport http vmware-vks https://mcp.example.com:8443/mcp \
   `{"status": "ok"}`（需 vmware-policy ≥ 1.23.0）。
 - 每个请求带上 `traceparent` 或 `X-Request-ID`，它会记进审计记录；用 `vmware-audit log --correlation-id ID`
   就能查到平台上某一次请求对应的调用。
+- 会读写本机文件的工具（这里是：`issue_*_kubeconfig(output_path)`）永远碰不到本机的配置、token、审计日志和 TLS 私钥；通过网络访问时，
+  除非用 `VMWARE_MCP_FILE_ROOT` 指定一个目录，否则这些工具不能访问本机文件（需 vmware-policy ≥ 1.23.1）。
 - 审计日志把每个调用者记为 `token:<名字>`。调用并行执行，同一 target 上也一样：server 为每个 target 最多保持 `VMWARE_MCP_POOL_SIZE`（默认 2）个会话，每个会话都是在该 target 上的一次登录；一个调用最多等 300 秒拿到空闲会话（vmware-policy ≥ 1.22.0）。
 - **能连到这个端点的人，都以该 server 配置的账号操作。** token 只用来识别调用者，不在平台上授予任何权限。
   每个权限级别单独起一个端点。`vmware-vks access-info` 可查看是哪个账号、它能做什么。

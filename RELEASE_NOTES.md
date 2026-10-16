@@ -3,7 +3,8 @@
 * **Security fix (HLD §18 step 0).** `issue_*_kubeconfig(output_path)` could name this server's own files, so over HTTPS a token holder could
   overwrite `$OPS_HOME/mcp-tokens` or `rules.yaml`, or read a skill's `.env`. A path that resolves into `$OPS_HOME`,
   a `~/.vmware-*` directory, a `VMWARE_*_CONFIG` directory, or the server's token file or TLS key/certificate is now
-  refused before anything is read or written. Needs vmware-policy 1.23.1.
+  refused before anything is read or written. Over a network transport these tools read and write host files only
+  inside `VMWARE_MCP_FILE_ROOT` (unset: refused). Needs vmware-policy 1.23.1.
 
 ## v3.3.1 — "session is not authenticated" names both causes (AIops#47)
 

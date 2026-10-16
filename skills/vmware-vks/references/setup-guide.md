@@ -165,6 +165,9 @@ vmware-vks mcp --transport https --host 0.0.0.0 --port 8443 \
 - Correlation: each audit row stores the caller's `traceparent` trace-id, else its `X-Request-ID` /
   `X-Correlation-ID`. Have the agent platform send one, and `vmware-audit log --correlation-id ID` lists the calls
   behind one platform request.
+- Tools that read or write files on this server (here: `issue_*_kubeconfig(output_path)`) never touch its configuration, tokens, audit log or
+  TLS key, and over the network they are off unless `VMWARE_MCP_FILE_ROOT` names a directory for them
+  (vmware-policy ≥ 1.23.1).
 - `vmware-audit token list` / `token revoke NAME` manage callers; a revoked token is refused from its next request.
   Replace a leaked token under a new name.
 - The server will not start without at least one token, and checks before it binds that unauthenticated requests
