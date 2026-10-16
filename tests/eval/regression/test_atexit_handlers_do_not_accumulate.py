@@ -44,7 +44,7 @@ def _target(name: str = "vcenter-prod") -> TargetConfig:
 
 
 def _live_si(*_a, **_kw):
-    """An SI with a session; a login without one is refused (AIops#47)."""
+    """An SI with a session; _expire() takes it away after login."""
     si = MagicMock()
     si.content.sessionManager.currentSession = MagicMock()
     return si

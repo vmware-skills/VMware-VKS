@@ -40,11 +40,7 @@ from vmware_policy.access import unknown_tool_message, vsphere_access_info
 from vmware_vks import __version__
 from vmware_vks.access_requirements import REQUIREMENTS
 from vmware_vks.config import AppConfig, ConfigError, load_config
-from vmware_vks.connection import (
-    NOT_AUTHENTICATED_HINT,
-    ConnectionManager,
-    NoVsphereRoleError,
-)
+from vmware_vks.connection import NOT_AUTHENTICATED_HINT, ConnectionManager
 from vmware_vks.errors import VksError
 from vmware_vks.notify.audit import AuditLogger
 from vmware_vks.ops import gate as _gate
@@ -107,10 +103,7 @@ def _safe_error(exc: Exception, tool: str) -> str:
         # Ahead of the allowlist on purpose — SSLCertVerificationError is also
         # a ValueError, so no allowlist edit can withhold it.
         return f"{type(exc).__name__}: operation failed."
-    # Both authored here, so nothing from the server travels. The role error is
-    # longer than the 300-character cap, and its remedy is at the end (AIops#47).
-    if isinstance(exc, NoVsphereRoleError):
-        return sanitize(str(exc), 500)
+    # Authored here, so nothing from the server travels (AIops#47).
     from pyVmomi import vim
 
     if isinstance(exc, vim.fault.NotAuthenticated):
@@ -131,11 +124,11 @@ def _safe_error(exc: Exception, tool: str) -> str:
 
 
 def _names_its_own_remedy(exc: Exception) -> bool:
-    """The no-role and not-authenticated errors (AIops#47) already say what to do,
-    and "confirm ... credentials" beside them would contradict them."""
+    """The not-authenticated error (AIops#47) already says what to do, and
+    "confirm ... credentials" beside it would contradict it."""
     from pyVmomi import vim
 
-    return isinstance(exc, (NoVsphereRoleError, vim.fault.NotAuthenticated))
+    return isinstance(exc, vim.fault.NotAuthenticated)
 
 
 def _tool_error(exc: Exception) -> dict:

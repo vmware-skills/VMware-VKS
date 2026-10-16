@@ -74,12 +74,6 @@ def _connect_step(target_name: Optional[str]) -> tuple[Optional["ServiceInstance
         host = si._stub.host.split(":")[0]
         return si, Step("vCenter reachable", True, f"connected to {host}")
     except Exception as e:  # diagnostic: degrade, never traceback
-        from vmware_vks.connection import NoVsphereRoleError
-
-        if isinstance(e, NoVsphereRoleError):
-            # Reached, logged in, no role (AIops#47): the message is the whole
-            # remedy, and "check credentials" would send the operator the wrong way.
-            return None, Step("vCenter reachable", False, str(e))
         return None, Step(
             "vCenter reachable",
             False,

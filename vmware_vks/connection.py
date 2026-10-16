@@ -10,7 +10,6 @@ import ssl
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from vmware_policy.access import login_has_no_session, no_role_message
 from vmware_policy.pool import SessionPool
 
 from vmware_vks.config import (
@@ -99,16 +98,11 @@ def get_target_config(si: "ServiceInstance") -> TargetConfig | None:
     return _SI_TARGET.get(id(si))
 
 
-class NoVsphereRoleError(ConfigError):
-    """The login was accepted but the account has no vSphere role (AIops#47).
-
-    A ``ConfigError`` so every surface already shows its text (``_safe_error``,
-    ``cause_summary``, the CLI's ``OSError`` branch); a class of its own so
-    callers can tell it from a transport failure. The message is authored: the
-    target name from config.yaml, nothing from the server.
-    """
-
-
+#: What a NotAuthenticated fault means here (AIops#47): the session expired, or
+#: the account has no vSphere role. VKS does not refuse such a login at connect
+#: time: an account holding only Supervisor namespace permissions can look the
+#: same to any vSphere-role check and still do its work, so the fault is named
+#: when it happens instead.
 NOT_AUTHENTICATED_HINT = (
     "vCenter answered 'the session is not authenticated'. Either the session "
     "expired (run the command again; a new session is opened) or the account "
@@ -269,13 +263,4 @@ class ConnectionManager:
 
         _SI_ATEXIT[id(si)] = _cleanup
         atexit.register(_cleanup)
-
-        # An account with no vSphere role logs in fine and then reads nothing:
-        # vCenter shows no session for it and every call fails with
-        # NotAuthenticated (AIops#47). Just after login an expired session is
-        # not the explanation, so refuse here, before any REST or /wcp/login
-        # call is built on this session, and close it the way the pool would.
-        if login_has_no_session(si):
-            _close_si(si)
-            raise NoVsphereRoleError(no_role_message(target.name, "vmware-vks"))
         return si

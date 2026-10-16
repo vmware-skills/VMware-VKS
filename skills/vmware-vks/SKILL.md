@@ -235,9 +235,9 @@ vmware-vks storage -n <namespace> [--target <name>]
 
 Workload Management must be enabled in vCenter. Check: vCenter UI → Workload Management. Requires vSphere 8.x+ with Enterprise Plus or VCF license.
 
-### "No vSphere role" from `check`, or "session is not authenticated" on every command
+### Every command fails with "session is not authenticated"
 
-The password is right; the account has no vSphere role, so vCenter shows no session for it and every call fails. `vmware-vks check` reports this on the "vCenter reachable" row, before any REST or `/wcp/login` call. Assign the account a role (Read-Only or higher) on the vCenter root folder under Administration > Access Control > Global Permissions; Namespace and TKC work also needs Workload Management privileges. Seen mid-run, the same fault can also be an expired session: run the command again.
+The password is right. Either the session expired (run the command again; a new session is opened) or the account has no vSphere role, so vCenter shows no session for it and every call fails. VKS does not refuse such a login when it connects, because an account holding only Supervisor namespace permissions can look the same and still work; the error appears on the first call that needs a role. Assign the account a role (Read-Only or higher) on the vCenter root folder under Administration > Access Control > Global Permissions; Namespace and TKC work also needs Workload Management privileges.
 
 ### Namespace creation fails with "storage policy not found"
 

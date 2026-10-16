@@ -1,12 +1,11 @@
-## Unreleased — a login with no vSphere role is named as such (AIops#47)
+## Unreleased — "session is not authenticated" names both causes (AIops#47)
 
-* An account that logs in but has no vSphere role (vCenter shows no session for it) is now refused at connect time
-  with a message naming the missing role (assign Read-Only or higher), on `check`'s "vCenter reachable" row, the
-  `/wcp/login` preflight, the CLI and every MCP tool, before any vSphere Automation REST or `/wcp/login` call is made
-  with it. The session is logged out and never cached.
-* `NotAuthenticated` raised later (session expired, or a role removed while running) now says both causes, on the
-  CLI (it was a raw traceback) and over MCP (it was `NotAuthenticated: operation failed.` plus a hint to check
-  credentials). Neither error carries the "check credentials" hint any more.
+* `NotAuthenticated` (session expired, or an account with no vSphere role) now says both causes and the remedy
+  for each, on the CLI (it was a raw traceback) and over MCP (it was `NotAuthenticated: operation failed.` plus a
+  hint to check credentials). It no longer carries the "check credentials" hint; the password is not the problem.
+* Unlike the other vSphere skills, VKS does **not** refuse a login that shows no session at connect time: an
+  account that holds only Supervisor namespace permissions can look the same to any vSphere-role check and still
+  work, so a refusal would break it. The error is named on the first call that fails instead.
 * Requires vmware-policy 1.23.0.
 
 ## v3.3.0 — calls run side by side on one target; `get_access_info`
