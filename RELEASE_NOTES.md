@@ -1,4 +1,4 @@
-## Unreleased — "session is not authenticated" names both causes (AIops#47)
+## v3.3.1 — "session is not authenticated" names both causes (AIops#47)
 
 * `NotAuthenticated` (session expired, or an account with no vSphere role) now says both causes and the remedy
   for each, on the CLI (it was a raw traceback) and over MCP (it was `NotAuthenticated: operation failed.` plus a
