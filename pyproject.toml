@@ -17,7 +17,7 @@ dependencies = [
     "typer>=0.12,<1.0",
     "rich>=13.0,<15.0",
     "python-dotenv>=1.0,<2.0",
-    "mcp[cli]>=1.28,<2.0",
+    "mcp[cli]>=1.30,<2.0",
     "vmware-policy>=1.23.1,<2.0",
 ]
 
