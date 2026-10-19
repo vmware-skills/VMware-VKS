@@ -1,3 +1,11 @@
+## v3.4.1 — a login refused with NoPermission gets an authored error, not the raw fault (2026-10-19)
+
+* **A login vCenter refuses with `NoPermission` now names the target and points at `doctor`.** Found on a vCenter
+  8.0.3 lab (follow-up to AIops#47): vCenter refuses the login itself for an account that may not log in, and VKS
+  showed the raw fault. It is now a configuration error naming the target and `doctor`. Unlike the vSphere skills it
+  does not claim "no vSphere role": an account with only Supervisor namespace permissions is a real VKS user. Other
+  faults are unchanged.
+
 ## v3.4.0 — roles for network callers (HLD §18)
 
 * Declares the role metadata vmware-policy ≥ 1.24.0 needs to apply **roles** to this server over HTTPS
