@@ -247,6 +247,22 @@ class ConnectionManager:
                 f"host is up and that its 'host' and 'port' in {CONFIG_FILE} are "
                 f"reachable from this machine."
             ) from exc
+        except Exception as exc:
+            # vCenter refuses the login itself with NoPermission when the account
+            # may not log in there (lab vCenter 8.0.3, 2026-10-18). VKS never
+            # says "no vSphere role": an account holding only Supervisor
+            # namespace permissions is a real VKS user. Authored text, so the raw
+            # fault (and whatever it carries) stays on __cause__.
+            from pyVmomi import vim
+
+            if not isinstance(exc, vim.fault.NoPermission):
+                raise
+            raise ConfigError(
+                f"Target '{target.name}' refused the login with NoPermission: the "
+                f"password is right but this account may not log in to that vCenter. "
+                f"Give it a role there (a Supervisor namespace role alone may not "
+                f"allow the SOAP login), then run 'vmware-vks doctor'."
+            ) from exc
 
         # Stash verify_ssl in module dict (NOT on si — pyVmomi 8.x rejects
         # setattr on ManagedObject, see 踩坑 #32). Consumers read via
