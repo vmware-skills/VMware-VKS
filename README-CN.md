@@ -291,7 +291,7 @@ vmware-vks-mcp
 | 特性 | 说明 |
 |------|------|
 | 以只读为主 | 24 个工具中 15 个为只读 |
-| 默认只预览 | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 接受 `confirm`（默认 `False`）：不带它的调用不做任何变更，只返回 `blast_radius` — 将创建什么，或删除会销毁的 TKC 集群、VM、PVC、节点与工作负载。存在阻断项或影响范围有任何部分读不到时，`confirm=True` 会被拒绝。`confirmed` / `dry_run` 为已弃用的别名 |
+| 默认只预览 | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 接受 `confirm`（默认 `False`）：不带它的调用不做任何变更，只返回 `blast_radius` — 将创建什么，或删除会销毁的 TKC 集群、VM、PVC、节点与工作负载。存在阻断项或影响范围有任何部分读不到时，`confirm=True` 会被拒绝。旧的 `confirmed` / `dry_run` 别名已在 3.4.2 移除，仍传它们会被当作未知参数拒绝 |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |
 | 凭据安全 | 密码仅从环境变量（`.env` 文件）加载，不写入 `config.yaml` |

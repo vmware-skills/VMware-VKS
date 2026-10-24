@@ -419,29 +419,23 @@ def _acted_undo(action: str, tool: str, note: str, keys: tuple[str, ...]):
     return _undo
 
 
-def _gate_error(e: Exception, tool: str, hint: str, decision: Optional[_gate.Decision]) -> dict:
-    """The error envelope for a gated tool, keeping the deprecation note."""
+def _gate_error(e: Exception, tool: str, hint: str) -> dict:
+    """The error envelope for a gated tool, with the blast radius of a refusal."""
     payload = {"error": _safe_error(e, tool), "hint": hint}
     radius = getattr(e, "blast_radius", None)
     if isinstance(e, _gate.GateRefusedError) and radius is not None:
         payload["blast_radius"] = radius
-    if decision is not None and decision.deprecated:
-        payload["deprecated"] = decision.deprecated
     return payload
 
 
-def _with_note(payload: dict, decision: _gate.Decision) -> dict:
-    return {**payload, "deprecated": decision.deprecated} if decision.deprecated else payload
-
-
-def _preview(radius: dict, decision: _gate.Decision, verb: str) -> dict:
+def _preview(radius: dict, verb: str) -> dict:
     """The L2 answer to a call that did not confirm: the radius, nothing changed."""
-    return _with_note({
+    return {
         "action": "preview",
         "blast_radius": radius,
         "hint": f"Nothing was {verb}d. Show blast_radius to the user; to {verb}, "
                 "re-run with confirm=True.",
-    }, decision)
+    }
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True})
@@ -460,7 +454,6 @@ def create_namespace(
     memory_limit_mib: Optional[int] = None,
     description: str = "",
     confirm: bool = False,
-    dry_run: Optional[bool] = None,
     target: Optional[str] = None,
 ) -> dict:
     """[WRITE] Create a vSphere Namespace on a Supervisor Cluster.
@@ -482,14 +475,12 @@ def create_namespace(
         memory_limit_mib: MiB. Omit for no limit.
         description: Free-text label. Omit for none.
         confirm: False (default) returns the blast radius and changes nothing. True applies it.
-        dry_run: Deprecated alias for confirm; removed in the next minor release.
-            dry_run=False acts, dry_run=True previews.
         target: vCenter in config.yaml; omit for the default.
     """
     from vmware_vks.ops import namespace as _ns
     t = target or "default"
     params = {"cluster_id": cluster_id, "storage_policy": storage_policy}
-    decision = _gate.decide_create(confirm, dry_run)
+    decision = _gate.decide_create(confirm)
     try:
         si = _get_si(target)
         spec = _ns.create_namespace(
@@ -499,7 +490,7 @@ def create_namespace(
         )["spec"]
         radius = _gate.measure_namespace_create(si, name, spec)
         if not decision.act:
-            return _preview(radius, decision, "create")
+            return _preview(radius, "create")
         _gate.refuse_if_blocked("create_namespace", name, radius)
         result = _ns.create_namespace(
             si, name=name, cluster_id=cluster_id, storage_policy=storage_policy,
@@ -517,13 +508,13 @@ def create_namespace(
             "Verify cluster_id with check_vks_compatibility and "
             "storage_policy with list_supervisor_storage_policies; "
             "list_namespaces shows whether the name is already taken."
-        ), decision)
+        ))
     _audit.log(
         target=t, operation="create_namespace",
         resource=name, parameters=params,
         result="success",
     )
-    return _with_note({"action": "created", **result, "blast_radius": radius}, decision)
+    return {"action": "created", **result, "blast_radius": radius}
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True})
@@ -578,8 +569,6 @@ def update_namespace(
 def delete_namespace(
     name: str,
     confirm: bool = False,
-    confirmed: Optional[bool] = None,
-    dry_run: Optional[bool] = None,
     target: Optional[str] = None,
 ) -> dict:
     """[WRITE] Delete a vSphere Namespace and everything inside it (irreversible).
@@ -598,20 +587,16 @@ def delete_namespace(
     Args:
         name: Namespace name to delete (discover via list_namespaces).
         confirm: False (default) returns the blast radius and changes nothing. True applies it.
-        confirmed: Deprecated alias for confirm; removed in the next minor release.
-            Acts only together with dry_run=False; confirmed=False previews.
-        dry_run: Deprecated alias for confirm; removed in the next minor release.
-            dry_run=True previews.
         target: vCenter in config.yaml; omit for the default.
     """
     from vmware_vks.ops import namespace as _ns
     t = target or "default"
-    decision = _gate.decide_delete(confirm, confirmed, dry_run)
+    decision = _gate.decide_delete(confirm)
     try:
         si = _get_si(target)
         radius = _gate.measure_namespace_delete(si, name)
         if not decision.act:
-            return _preview(radius, decision, "delete")
+            return _preview(radius, "delete")
         _gate.refuse_if_blocked("delete_namespace", name, radius)
         result = _ns.delete_namespace(si, name, confirmed=True, dry_run=False)
     except Exception as e:
@@ -621,10 +606,10 @@ def delete_namespace(
         return _gate_error(e, "delete_namespace", (
             "Run list_tkc_clusters — clusters inside the namespace block "
             "the delete — and get_namespace to confirm it still exists."
-        ), decision)
+        ))
     _audit.log(target=t, operation="delete_namespace",
                resource=name, parameters={}, result="success")
-    return _with_note({"action": "deleted", **result, "blast_radius": radius}, decision)
+    return {"action": "deleted", **result, "blast_radius": radius}
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
@@ -743,7 +728,6 @@ def create_tkc_cluster(
     worker_count: int = 3,
     storage_class: str = "vsphere-storage",
     confirm: bool = False,
-    dry_run: Optional[bool] = None,
     target: Optional[str] = None,
 ) -> dict:
     """[WRITE] Create a TanzuKubernetesCluster in a vSphere Namespace.
@@ -767,14 +751,12 @@ def create_tkc_cluster(
         worker_count: Worker nodes (>= 1).
         storage_class: Storage class.
         confirm: False (default) returns the blast radius and changes nothing. True applies it.
-        dry_run: Deprecated alias for confirm; removed in the next minor release.
-            dry_run=False acts, dry_run=True previews.
         target: vCenter in config.yaml; omit for the default.
     """
     from vmware_vks.ops import tkc as _tkc
     t = target or "default"
     params = {"k8s_version": k8s_version, "vm_class": vm_class, "workers": worker_count}
-    decision = _gate.decide_create(confirm, dry_run)
+    decision = _gate.decide_create(confirm)
     try:
         si = _get_si(target)
         radius = _gate.measure_tkc_create(
@@ -782,7 +764,7 @@ def create_tkc_cluster(
             control_plane_count, worker_count, storage_class,
         )
         if not decision.act:
-            return _preview(radius, decision, "create")
+            return _preview(radius, "create")
         _gate.refuse_if_blocked("create_tkc_cluster", name, radius)
         result = _tkc.create_tkc_cluster(
             si, name=name, namespace=namespace, k8s_version=k8s_version,
@@ -801,14 +783,14 @@ def create_tkc_cluster(
             "Verify k8s_version with get_tkc_available_versions and "
             "vm_class with list_vm_classes; the namespace must already "
             "exist (list_namespaces)."
-        ), decision)
+        ))
     _audit.log(
         target=t, operation="create_tkc_cluster",
         resource=f"{namespace}/{name}",
         parameters=params,
         result="success",
     )
-    return _with_note({"action": "created", **result, "blast_radius": radius}, decision)
+    return {"action": "created", **result, "blast_radius": radius}
 
 
 @mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False, "openWorldHint": True})
@@ -908,8 +890,6 @@ def delete_tkc_cluster(
     name: str,
     namespace: str,
     confirm: bool = False,
-    confirmed: Optional[bool] = None,
-    dry_run: Optional[bool] = None,
     force: bool = False,
     target: Optional[str] = None,
 ) -> dict:
@@ -932,21 +912,17 @@ def delete_tkc_cluster(
         name: Cluster name (via list_tkc_clusters).
         namespace: Namespace holding it.
         confirm: False (default) returns the blast radius and changes nothing. True applies it.
-        confirmed: Deprecated alias for confirm; removed in the next minor release.
-            Acts only together with dry_run=False; confirmed=False previews.
-        dry_run: Deprecated alias for confirm; removed in the next minor release.
-            dry_run=True previews.
         force: Skip the running-workload check (dangerous).
         target: vCenter in config.yaml; omit for the default.
     """
     from vmware_vks.ops import tkc as _tkc
     t = target or "default"
-    decision = _gate.decide_delete(confirm, confirmed, dry_run)
+    decision = _gate.decide_delete(confirm)
     try:
         si = _get_si(target)
         radius = _gate.measure_tkc_delete(si, name, namespace, force)
         if not decision.act:
-            return _preview(radius, decision, "delete")
+            return _preview(radius, "delete")
         _gate.refuse_if_blocked("delete_tkc_cluster", f"{namespace}/{name}", radius)
         # The gate has just read the workloads (or force skips them); the
         # executor's own check would repeat the read, so it is told to skip it.
@@ -963,11 +939,11 @@ def delete_tkc_cluster(
             "or list_tkc_clusters to confirm name and namespace. Preview "
             "delete_tkc_cluster (without confirm) to see the running "
             "workloads that block it, or pass force=True to skip the check."
-        ), decision)
+        ))
     _audit.log(target=t, operation="delete_tkc_cluster",
                resource=f"{namespace}/{name}", parameters={"force": force},
                result="success")
-    return _with_note({"action": "deleted", **result, "blast_radius": radius}, decision)
+    return {"action": "deleted", **result, "blast_radius": radius}
 
 
 # ---------------------------------------------------------------------------

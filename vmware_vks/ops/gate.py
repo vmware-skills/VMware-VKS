@@ -45,54 +45,29 @@ class GateRefusedError(VksSafetyError):
 
 
 # ---------------------------------------------------------------------------
-# confirm + deprecated aliases
+# confirm
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class Decision:
-    """Whether the call acts, and the deprecation note if an alias was used."""
+    """Whether the call acts."""
 
     act: bool
-    deprecated: str | None
 
 
-def _decide(
-    confirm: bool,
-    passed: dict[str, bool | None],
-    legacy_acts: Callable[[dict[str, bool]], bool],
-) -> Decision:
-    """Act iff confirm or the old contract says act, and nothing passed says hold.
+def decide_delete(confirm: bool) -> Decision:
+    """Only ``confirm=True`` itself acts.
 
-    ``passed`` holds the aliases with their raw values; ``None`` means the
-    caller did not pass that alias. ``confirmed=False`` and ``dry_run=True`` are
-    explicit holds and override everything else.
+    The deprecated ``confirmed`` / ``dry_run`` aliases were removed in 3.4.2; a
+    call still passing one is refused by the tool's argument model.
     """
-    given = {k: v for k, v in passed.items() if v is not None}
-    hold = given.get("confirmed") is False or given.get("dry_run") is True
-    act = (confirm is True or (bool(given) and legacy_acts(given))) and not hold
-    note = None
-    if given:
-        names = " and ".join(sorted(given))
-        verb = "are" if len(given) > 1 else "is"
-        note = f"{names} {verb} deprecated; use confirm. Removed in the next minor release."
-    return Decision(act=act, deprecated=note)
+    return Decision(act=confirm is True)
 
 
-def decide_delete(
-    confirm: bool, confirmed: bool | None, dry_run: bool | None
-) -> Decision:
-    """Old delete contract: acted only with confirmed=True AND dry_run=False."""
-    return _decide(
-        confirm,
-        {"confirmed": confirmed, "dry_run": dry_run},
-        lambda g: g.get("confirmed") is True and g.get("dry_run") is False,
-    )
-
-
-def decide_create(confirm: bool, dry_run: bool | None) -> Decision:
-    """Old create contract: acted with dry_run=False."""
-    return _decide(confirm, {"dry_run": dry_run}, lambda g: g.get("dry_run") is False)
+def decide_create(confirm: bool) -> Decision:
+    """Only ``confirm=True`` itself acts (see :func:`decide_delete`)."""
+    return Decision(act=confirm is True)
 
 
 # ---------------------------------------------------------------------------
