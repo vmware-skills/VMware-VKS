@@ -306,7 +306,7 @@ def test_mcp_delete_tkc_returns_error_dict():
     import vmware_vks.mcp_server.server as srv
 
     with patch.object(srv, "_get_si", side_effect=VksApiError("boom", 503)):
-        result = srv.delete_tkc_cluster("c1", "dev", confirmed=True, dry_run=False)
+        result = srv.delete_tkc_cluster("c1", "dev", confirm=True)
     assert "error" in result
 
 

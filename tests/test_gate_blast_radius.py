@@ -5,8 +5,8 @@ Contract per tool:
 * ``confirm: bool = False`` — a bare call previews and calls no write API (L2);
 * preview and acting response both carry ``blast_radius`` (L1);
 * ``confirm=True`` is refused on a blocker or an unmeasured field (L3);
-* the legacy ``confirmed`` / ``dry_run`` spellings are deprecated aliases, the
-  conservative reading wins, and a response that used one says so.
+* the legacy ``confirmed`` / ``dry_run`` aliases were removed (3.5.0): a call
+  that still passes one is refused as an unknown argument and writes nothing.
 
 The write APIs are the real ops-layer functions (``_rest_post`` /
 ``_rest_delete`` and the Kubernetes ``CustomObjectsApi`` create/delete), so a
@@ -139,17 +139,14 @@ GATED = ("delete_namespace", "delete_tkc_cluster", "create_namespace", "create_t
 
 
 @pytest.mark.parametrize("tool", GATED)
-def test_schema_confirm_defaults_to_false_and_aliases_to_none(tool):
+def test_schema_confirm_defaults_to_false_and_has_no_aliases(tool):
     tools = {t.name: t for t in asyncio.run(srv.mcp.list_tools())}
     props = tools[tool].inputSchema["properties"]
     assert props["confirm"]["default"] is False
-    assert props["dry_run"].get("default", "missing") is None
-    if tool.startswith("delete"):
-        assert props["confirmed"].get("default", "missing") is None
+    assert "dry_run" not in props and "confirmed" not in props
     assert props["confirm"]["description"].startswith(
         "False (default) returns the blast radius and changes nothing. True applies it."
     )
-    assert props["dry_run"]["description"].startswith("Deprecated alias for confirm")
     assert "Do not set\nconfirm=True on your own" in tools[tool].description or (
         "Do not set confirm=True on your own" in " ".join(tools[tool].description.split())
     )
@@ -213,32 +210,28 @@ def test_delete_namespace_vm_service_absent_is_zero_not_unmeasured(env):
     assert result["blast_radius"]["unmeasured"] == []
 
 
-# Alias table: (kwargs, acts?) — the conservative reading wins.
-DELETE_ALIASES = [
-    ({"confirmed": True, "dry_run": False}, True),   # the old acting call
-    ({"confirmed": True}, False),                    # old dry_run default was True
-    ({"dry_run": False}, False),                     # old contract also needed confirmed
-    ({"confirmed": False, "dry_run": True}, False),
-    ({"confirm": True, "dry_run": True}, False),     # disagree -> preview
-    ({"confirm": True, "confirmed": False}, False),  # disagree -> preview
-    ({"confirm": True, "confirmed": True, "dry_run": False}, True),
-    ({"confirm": True, "dry_run": False}, True),
+# The removed aliases: the old acting calls, through the MCP argument model.
+REQUIRED = {
+    "delete_namespace": {"name": NS},
+    "delete_tkc_cluster": {"name": CLUSTER, "namespace": NS},
+    "create_namespace": {"name": NS, "cluster_id": "domain-c9", "storage_policy": "gold"},
+    "create_tkc_cluster": {"name": CLUSTER, "namespace": NS, "k8s_version": "v1.28.4",
+                           "vm_class": "best-effort-small"},
+}
+OLD_ACTING_CALLS = [
+    ("delete_namespace", {"confirmed": True, "dry_run": False}),
+    ("delete_tkc_cluster", {"confirmed": True, "dry_run": False}),
+    ("create_namespace", {"dry_run": False}),
+    ("create_tkc_cluster", {"dry_run": False}),
 ]
 
 
-@pytest.mark.parametrize("kwargs,acts", DELETE_ALIASES)
-def test_delete_namespace_aliases(env, kwargs, acts):
+@pytest.mark.parametrize("tool,alias", OLD_ACTING_CALLS)
+def test_the_removed_aliases_are_refused_and_write_nothing(env, tool, alias):
     env.tkc_items = []
-    result = srv.delete_namespace(name=NS, **kwargs)
-    assert result["action"] == ("deleted" if acts else "preview")
-    assert env.rest_delete.call_count == (1 if acts else 0)
-    used = [k for k in ("confirmed", "dry_run") if k in kwargs]
-    if used:
-        assert "deprecated; use confirm" in result["deprecated"]
-        for name in used:
-            assert name in result["deprecated"]
-    else:
-        assert "deprecated" not in result
+    with pytest.raises(Exception, match="dry_run|confirmed"):
+        asyncio.run(srv.mcp.call_tool(tool, {**REQUIRED[tool], **alias}))
+    _no_writes(env)
 
 
 def test_delete_namespace_refusal_is_audited_as_failure(env, monkeypatch):
@@ -319,13 +312,10 @@ def test_delete_tkc_force_skips_workload_check_and_deletes(env):
     env.api.delete_namespaced_custom_object.assert_called_once()
 
 
-@pytest.mark.parametrize("kwargs,acts", DELETE_ALIASES)
-def test_delete_tkc_aliases(env, kwargs, acts):
-    result = srv.delete_tkc_cluster(name=CLUSTER, namespace=NS, **kwargs)
-    assert result["action"] == ("deleted" if acts else "preview")
-    assert env.api.delete_namespaced_custom_object.call_count == (1 if acts else 0)
-    if any(k in kwargs for k in ("confirmed", "dry_run")):
-        assert "deprecated; use confirm" in result["deprecated"]
+def test_no_deprecation_note_any_more(env):
+    env.tkc_items = []
+    assert "deprecated" not in srv.delete_tkc_cluster(name=CLUSTER, namespace=NS)
+    assert "deprecated" not in srv.delete_tkc_cluster(name=CLUSTER, namespace=NS, confirm=True)
 
 
 # ---------------------------------------------------------------------------
@@ -367,22 +357,6 @@ def test_create_namespace_unreadable_list_refuses(env):
     result = _create_ns(confirm=True)
     assert "error" in result
     _no_writes(env)
-
-
-CREATE_ALIASES = [
-    ({"dry_run": False}, True),
-    ({"dry_run": True}, False),
-    ({"confirm": True, "dry_run": True}, False),
-    ({"confirm": True, "dry_run": False}, True),
-]
-
-
-@pytest.mark.parametrize("kwargs,acts", CREATE_ALIASES)
-def test_create_namespace_aliases(env, kwargs, acts):
-    result = _create_ns(**kwargs)
-    assert result["action"] == ("created" if acts else "preview")
-    assert env.rest_post.call_count == (1 if acts else 0)
-    assert "dry_run is deprecated; use confirm" in result["deprecated"]
 
 
 def test_create_namespace_undo_only_after_a_real_create(env, monkeypatch):
@@ -442,15 +416,6 @@ def test_create_tkc_unreadable_cluster_list_refuses(env):
     result = _create_tkc(confirm=True)
     assert "error" in result
     _no_writes(env)
-
-
-@pytest.mark.parametrize("kwargs,acts", CREATE_ALIASES)
-def test_create_tkc_aliases(env, kwargs, acts):
-    env.tkc_items = []
-    result = _create_tkc(**kwargs)
-    assert result["action"] == ("created" if acts else "preview")
-    assert env.api.create_namespaced_custom_object.call_count == (1 if acts else 0)
-    assert "dry_run is deprecated; use confirm" in result["deprecated"]
 
 
 # ---------------------------------------------------------------------------

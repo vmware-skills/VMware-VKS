@@ -185,7 +185,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 
 `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default False). Without it they change nothing and return `blast_radius`: the spec or YAML plan to be created, or what a delete destroys (TKC clusters, VMs and PVCs in the namespace; node counts and running workloads of a cluster). Show it to the user; pass `confirm=True` only after they decide on what they saw.
 
-`confirm=True` is refused while a blocker stands — TKC clusters inside a namespace, running workloads in a cluster (unless `force=True`), a name already taken — or when any part of the blast radius could not be read. `confirmed` and `dry_run` are deprecated aliases until the next minor release.
+`confirm=True` is refused while a blocker stands — TKC clusters inside a namespace, running workloads in a cluster (unless `force=True`), a name already taken — or when any part of the blast radius could not be read. the old `confirmed` and `dry_run` aliases were removed in 3.5.0 and are refused as unknown arguments.
 
 **Credential access**: `issue_supervisor_kubeconfig` and `issue_tkc_kubeconfig` are not reads. The kubeconfig embeds a Supervisor bearer token (JWT from `/wcp/login`) that acts as the configured vCenter account until it expires — typically hours, and not revoked when vmware-vks exits. So:
 - Run them only when the user explicitly asks for a kubeconfig; never auto-run them or fetch one as a side step. Both are annotated `readOnlyHint: false` (MCP clients ask first) and `risk_level: medium` (so an operator's `min_risk_level: medium` deny rule covers them).
