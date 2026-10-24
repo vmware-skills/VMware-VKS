@@ -59,7 +59,7 @@ class Decision:
 def decide_delete(confirm: bool) -> Decision:
     """Only ``confirm=True`` itself acts.
 
-    The deprecated ``confirmed`` / ``dry_run`` aliases were removed in 3.5.0; a
+    The deprecated ``confirmed`` / ``dry_run`` aliases were removed in 3.4.2; a
     call still passing one is refused by the tool's argument model.
     """
     return Decision(act=confirm is True)

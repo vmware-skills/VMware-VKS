@@ -304,7 +304,7 @@ vmware-vks-mcp
 | Feature | Description |
 |---------|-------------|
 | Read-heavy | 15/24 tools are read-only |
-| Preview by default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default `False`): a call without it changes nothing and returns `blast_radius` — what would be created, or the TKC clusters, VMs, PVCs, nodes and workloads a delete destroys. `confirm=True` is refused when a blocker stands or part of the blast radius could not be read. the old `confirmed` / `dry_run` aliases were removed in 3.5.0 and are refused as unknown arguments |
+| Preview by default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default `False`): a call without it changes nothing and returns `blast_radius` — what would be created, or the TKC clusters, VMs, PVCs, nodes and workloads a delete destroys. `confirm=True` is refused when a blocker stands or part of the blast radius could not be read. the old `confirmed` / `dry_run` aliases were removed in 3.4.2 and are refused as unknown arguments |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |
 | Credential safety | Passwords only from environment variables (`.env` file), never in `config.yaml` |

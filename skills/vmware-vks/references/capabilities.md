@@ -102,7 +102,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 |---------|---------|
 | Plan -> Confirm -> Execute -> Log | Structured workflow: show YAML plan, confirm, execute, audit log |
 | Preview Default | The two creates and two deletes take `confirm` (default `False`) -- a call without it returns `blast_radius` and changes nothing |
-| Refusal When Unmeasured | `confirm=True` is refused while a blocker stands or when any part of the blast radius could not be read; the old `confirmed` / `dry_run` aliases were removed in 3.5.0 and are refused as unknown arguments |
+| Refusal When Unmeasured | `confirm=True` is refused while a blocker stands or when any part of the blast radius could not be read; the old `confirmed` / `dry_run` aliases were removed in 3.4.2 and are refused as unknown arguments |
 | Namespace Delete Guard | Rejects if TKC clusters exist inside -- prevents orphaned clusters |
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |

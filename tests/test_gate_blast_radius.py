@@ -5,7 +5,7 @@ Contract per tool:
 * ``confirm: bool = False`` — a bare call previews and calls no write API (L2);
 * preview and acting response both carry ``blast_radius`` (L1);
 * ``confirm=True`` is refused on a blocker or an unmeasured field (L3);
-* the legacy ``confirmed`` / ``dry_run`` aliases were removed (3.5.0): a call
+* the legacy ``confirmed`` / ``dry_run`` aliases were removed (3.4.2): a call
   that still passes one is refused as an unknown argument and writes nothing.
 
 The write APIs are the real ops-layer functions (``_rest_post`` /
