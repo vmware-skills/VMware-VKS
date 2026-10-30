@@ -356,6 +356,27 @@ def supervisor_status(
         console.print(f"  [bold]{k}:[/bold] {v}")
 
 
+@supervisor_app.command("upgrade-risk")
+@_cli_errors
+@audited("get_supervisor_upgrade_risk")
+def supervisor_upgrade_risk(
+    to: str = typer.Option("9.1.1", "--to", help="Planned vCenter version: 9.1.0 or 9.1.1"),
+    target: Optional[str] = typer.Option(None, "-t", "--target"),
+):
+    """Report Supervisor upgrade advisory scope; never grants upgrade clearance."""
+    from vmware_vks.ops.upgrade_risk import get_supervisor_upgrade_risk
+
+    result = get_supervisor_upgrade_risk(_get_si(target), to)
+    for key in (
+        "source_version", "source_build", "target_version",
+        "advisory_applicability", "supervisor_presence", "vumdb_schema_status",
+        "upgrade_clearance", "next_step",
+    ):
+        console.print(f"  [bold]{key}:[/bold] {result[key]}")
+    console.print(f"  [bold]supervisors:[/bold] {result['supervisors']}")
+    console.print(f"  [bold]official checker:[/bold] {result['references']['official_checker']}")
+
+
 @supervisor_app.command("storage-policies")
 @_cli_errors
 @audited("list_supervisor_storage_policies")

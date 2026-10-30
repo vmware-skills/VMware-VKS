@@ -21,7 +21,7 @@ compatibility: >
 
 > **Disclaimer**: This is a community-maintained open-source project and is **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and "vSphere" are trademarks of Broadcom. Source code is publicly auditable at [github.com/vmware-skills/VMware-VKS](https://github.com/vmware-skills/VMware-VKS) under the MIT license.
 
-AI-powered VMware vSphere Kubernetes Service (VKS) management — 24 MCP tools.
+AI-powered VMware vSphere Kubernetes Service (VKS) management — 25 MCP tools.
 
 > Requires vSphere 8.x+ with Workload Management enabled.
 > **Companion skills**: [vmware-aiops](https://github.com/vmware-skills/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/vmware-skills/VMware-Monitor) (monitoring), [vmware-storage](https://github.com/vmware-skills/VMware-Storage) (storage), [vmware-nsx](https://github.com/vmware-skills/VMware-NSX) (NSX networking), [vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security) (DFW/firewall), [vmware-aria](https://github.com/vmware-skills/VMware-Aria) (metrics/alerts/capacity), [vmware-avi](https://github.com/vmware-skills/VMware-AVI) (AVI/ALB/AKO), [vmware-harden](https://github.com/vmware-skills/VMware-Harden) (compliance baselines).
@@ -31,7 +31,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 24 MCP tools.
 
 | Category | Capabilities | Count |
 |----------|-------------|:-----:|
-| **Supervisor** | Compatibility check, status, storage policies | 3 |
+| **Supervisor** | Compatibility check, 9.1 upgrade risk, status, storage policies | 4 |
 | **Namespace** | List, get, create with quotas, update, delete with TKC guard, VM classes | 6 |
 | **TKC Clusters** | List, get, versions, create, scale, upgrade, delete with workload guard | 7 |
 | **VM Service** | VM snapshots, VM groups + bootOrder, VM multi-NIC readout (vm-operator CRDs, read-only) | 3 |
@@ -146,7 +146,7 @@ Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (24 — 15 read, 9 write)
+## MCP Tools (25 — 16 read, 9 write)
 
 All accept optional `target` parameter to specify a named vCenter.
 
@@ -159,6 +159,7 @@ to be guessed from the row count. These three read their collection in one un-pa
 | Category | Tool | Type |
 |----------|------|:----:|
 | **Supervisor** | `check_vks_compatibility` | Read |
+| | `get_supervisor_upgrade_risk` | Read |
 | | `get_supervisor_status` | Read |
 | | `list_supervisor_storage_policies` | Read |
 | **Namespace** | `list_namespaces` | Read |
@@ -202,6 +203,7 @@ vmware-vks check [--config <path>]
 vmware-vks preflight-auth [--target <name>]   # live-validate POST /wcp/login (issue #13)
 vmware-vks access-info [--tool <name>] [--target <name>]   # what may this account do?
 vmware-vks supervisor status <cluster-id> [--target <name>]
+vmware-vks supervisor upgrade-risk --to 9.1.1 [--target <name>]   # VUMDB schema remains unmeasured; follow KB 455737
 vmware-vks supervisor storage-policies [--target <name>]
 
 # Namespace

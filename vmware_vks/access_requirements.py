@@ -29,6 +29,7 @@ _READ = ["System.Read"]
 REQUIREMENTS: dict[str, list[str] | None] = {
     # REST: namespace-management clusters + software; SOAP: content.about.
     "check_vks_compatibility": list(_READ),
+    "get_supervisor_upgrade_risk": list(_READ),
     "get_supervisor_status": list(_READ),
     "list_supervisor_storage_policies": ["System.Read", "StorageProfile.View"],
     "list_namespaces": list(_READ),
