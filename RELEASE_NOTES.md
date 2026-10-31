@@ -1,3 +1,10 @@
+## v3.4.2 — the `confirmed` / `dry_run` aliases are gone
+
+* **Breaking for callers still sending the old aliases:** `dry_run` on `create_namespace` and `create_tkc_cluster`,
+  and `confirmed` / `dry_run` on `delete_namespace` and `delete_tkc_cluster`, are removed. A call that passes one
+  is refused as an unknown argument ("Extra inputs are not permitted") and changes nothing; pass `confirm=true`.
+  A call without `confirm` previews, as before.
+
 ## v3.4.1 — a login refused with NoPermission gets an authored error, not the raw fault (2026-10-19)
 
 * **A login vCenter refuses with `NoPermission` now names the target and points at `doctor`.** Found on a vCenter

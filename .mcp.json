@@ -5,7 +5,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "vmware-vks==3.4.1",
+        "vmware-vks==3.4.2",
         "vmware-vks-mcp"
       ]
     }
