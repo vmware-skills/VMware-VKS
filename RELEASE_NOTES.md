@@ -1,7 +1,14 @@
 ## Unreleased — vCenter 9.1 Supervisor upgrade advisory report
 
 * New read-only `get_supervisor_upgrade_risk` tool and `vmware-vks supervisor upgrade-risk --to 9.1.1` command report the source vCenter version/build, Supervisor inventory, and whether the published 9.1.0/9.1.1 advisory matrix applies. An unreadable inventory or unrecognized source version stays `unknown`.
-* The VUMDB schema is **always `unmeasured`** and upgrade clearance is **never established** by this report. For an affected Supervisor/VKS environment, run the official checker in [Broadcom KB 455737](https://knowledge.broadcom.com/external/article/455737) or VDT, remediate if required, and back up vCenter and Supervisor before upgrading. This feature has no live vCenter validation yet.
+* The VUMDB schema is **always `unmeasured`** and upgrade clearance is **never established** by this report. For an affected Supervisor/VKS environment, run the official checker in [Broadcom KB 455737](https://knowledge.broadcom.com/external/article/455737) or VDT, remediate if required, and back up vCenter and Supervisor before upgrading. The no-Supervisor path was checked against a live vCenter 8.0.3; the affected 9.1 Supervisor path still needs live validation.
+
+## v3.4.2 — the `confirmed` / `dry_run` aliases are gone
+
+* **Breaking for callers still sending the old aliases:** `dry_run` on `create_namespace` and `create_tkc_cluster`,
+  and `confirmed` / `dry_run` on `delete_namespace` and `delete_tkc_cluster`, are removed. A call that passes one
+  is refused as an unknown argument ("Extra inputs are not permitted") and changes nothing; pass `confirm=true`.
+  A call without `confirm` previews, as before.
 
 ## v3.4.1 — a login refused with NoPermission gets an authored error, not the raw fault (2026-10-19)
 
