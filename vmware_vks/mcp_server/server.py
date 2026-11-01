@@ -304,6 +304,31 @@ def check_vks_compatibility(target: Optional[str] = None) -> dict:
 
 @mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
 @vmware_tool(risk_level="low")
+def get_supervisor_upgrade_risk(
+    target_version: str = "9.1.1", target: Optional[str] = None
+) -> dict:
+    """[READ] Check the vCenter 9.1.0/9.1.1 Supervisor pre-upgrade advisory scope.
+
+    Reads the source vCenter version/build and Supervisor cluster inventory.
+    Returns advisory_applicability, supervisor_presence and next_step. The
+    vLCM/VUM database schema is **unmeasured**: this tool never grants upgrade
+    clearance. Use the official checker in Broadcom KB 455737 or VDT before
+    upgrading an affected environment. No database script is run here.
+
+    Args:
+        target_version: Planned vCenter version, 9.1.0 or 9.1.1.
+        target: vCenter target from config.yaml; omit for the default.
+    """
+    try:
+        from vmware_vks.ops.upgrade_risk import get_supervisor_upgrade_risk as report
+
+        return report(_get_si(target), target_version)
+    except Exception as e:
+        return _tool_error(e)
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True})
+@vmware_tool(risk_level="low")
 def get_supervisor_status(cluster_id: str, target: Optional[str] = None) -> dict:
     """[READ] Get the health of one Supervisor Cluster (vSphere with Tanzu control plane).
 

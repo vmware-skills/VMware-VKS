@@ -9,7 +9,7 @@
 
 [English](README.md) | [中文](README-CN.md)
 
-MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor 集群、vSphere 命名空间和 TanzuKubernetesCluster 生命周期。24 个 MCP 工具。
+MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor 集群、vSphere 命名空间和 TanzuKubernetesCluster 生命周期。25 个 MCP 工具。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -130,15 +130,21 @@ pip install --no-index --find-links dist vmware-vks
 2. 查看使用情况 → `vmware-vks storage -n dev`
 3. 更新配额 → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## 工具参考（24 个工具）
+## 工具参考（25 个工具）
 
 ### Supervisor
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
 | `check_vks_compatibility` | vCenter 版本检查 + WCP 状态 | 只读 |
+| `get_supervisor_upgrade_risk` | vCenter 9.1.0/9.1.1 升级前公告适用性；VUMDB 架构仍为未测得，并指向官方检查器 | 只读 |
 | `get_supervisor_status` | Supervisor 集群状态和 K8s API 端点 | 只读 |
 | `list_supervisor_storage_policies` | vCenter 存储策略列表（策略 ID、名称、描述） | 只读 |
+
+从 vCenter 8.0 Update 3 或 9.0.0–9.0.2 升级到 9.1.0/9.1.1 前，先运行
+`supervisor upgrade-risk`。报告无法检查 VUMDB 架构，也不代表升级获准。
+若 Supervisor/VKS 环境在公告范围内，请按 [Broadcom 官方检查与修复说明](https://knowledge.broadcom.com/external/article/455737)
+或 VDT 检查，并在升级前备份 vCenter 和 Supervisor。
 
 ### 命名空间
 
@@ -220,6 +226,7 @@ vmware-vks check
 
 # Supervisor
 vmware-vks supervisor status <集群ID>
+vmware-vks supervisor upgrade-risk --to 9.1.1
 vmware-vks supervisor storage-policies
 
 # 命名空间
@@ -292,7 +299,7 @@ vmware-vks-mcp
 
 | 特性 | 说明 |
 |------|------|
-| 以只读为主 | 24 个工具中 15 个为只读 |
+| 以只读为主 | 25 个工具中 16 个为只读 |
 | 默认只预览 | `create_namespace`、`create_tkc_cluster`、`delete_namespace`、`delete_tkc_cluster` 接受 `confirm`（默认 `False`）：不带它的调用不做任何变更，只返回 `blast_radius` — 将创建什么，或删除会销毁的 TKC 集群、VM、PVC、节点与工作负载。存在阻断项或影响范围有任何部分读不到时，`confirm=True` 会被拒绝。旧的 `confirmed` / `dry_run` 别名已在 3.4.2 移除，仍传它们会被当作未知参数拒绝 |
 | TKC 保护 | `delete_namespace` 在命名空间内存在 TKC 集群时拒绝执行 |
 | 工作负载保护 | `delete_tkc_cluster` 在 Deployment/StatefulSet 运行时拒绝执行 |

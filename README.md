@@ -9,7 +9,7 @@ For a read-only check of this skill with your model and agent host, use the shar
 
 [English](README.md) | [中文](README-CN.md)
 
-MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Supervisor clusters, vSphere Namespaces, and VKS Cluster lifecycle. 24 MCP tools.
+MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Supervisor clusters, vSphere Namespaces, and VKS Cluster lifecycle. 25 MCP tools.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -135,15 +135,22 @@ pip install --no-index --find-links dist vmware-vks
 2. Check usage → `vmware-vks storage -n dev`
 3. Update quota → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## Tool Reference (24 tools)
+## Tool Reference (25 tools)
 
 ### Supervisor
 
 | Tool | Description | Type |
 |------|-------------|------|
 | `check_vks_compatibility` | vCenter version check + WCP status | Read |
+| `get_supervisor_upgrade_risk` | vCenter 9.1.0/9.1.1 pre-upgrade advisory scope; VUMDB schema remains unmeasured; links to the official checker | Read |
 | `get_supervisor_status` | Supervisor cluster status and K8s API endpoint | Read |
 | `list_supervisor_storage_policies` | vCenter storage policies (policy ID, name, description) | Read |
+
+For an upgrade from vCenter 8.0 Update 3 or 9.0.0–9.0.2 to 9.1.0/9.1.1, run
+`supervisor upgrade-risk` before scheduling. Its report cannot inspect the VUMDB
+schema or establish upgrade clearance. If a Supervisor/VKS environment is in
+scope, follow the [Broadcom checker and remediation instructions](https://knowledge.broadcom.com/external/article/455737)
+or VDT, then back up vCenter and Supervisor before upgrading.
 
 ### Namespace
 
@@ -225,6 +232,7 @@ vmware-vks check
 
 # Supervisor
 vmware-vks supervisor status <cluster-id>
+vmware-vks supervisor upgrade-risk --to 9.1.1
 vmware-vks supervisor storage-policies
 
 # Namespace
@@ -305,7 +313,7 @@ vmware-vks-mcp
 
 | Feature | Description |
 |---------|-------------|
-| Read-heavy | 15/24 tools are read-only |
+| Read-heavy | 16/25 tools are read-only |
 | Preview by default | `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default `False`): a call without it changes nothing and returns `blast_radius` — what would be created, or the TKC clusters, VMs, PVCs, nodes and workloads a delete destroys. `confirm=True` is refused when a blocker stands or part of the blast radius could not be read. the old `confirmed` / `dry_run` aliases were removed in 3.4.2 and are refused as unknown arguments |
 | TKC guard | `delete_namespace` rejects if TKC clusters exist inside |
 | Workload guard | `delete_tkc_cluster` rejects if Deployments/StatefulSets are running |

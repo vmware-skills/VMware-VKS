@@ -1,6 +1,6 @@
 # Capabilities
 
-Detailed capability breakdown for all 24 MCP tools.
+Detailed capability breakdown for all 25 MCP tools.
 
 ## Automation Level Reference
 
@@ -25,6 +25,7 @@ Each operation is classified by autonomy level per the Enterprise Harness Engine
 | Tool | What it returns |
 |------|----------------|
 | `check_vks_compatibility` | vCenter version (pass/fail for 8.x+), WCP enabled status, network backend type |
+| `get_supervisor_upgrade_risk` | vCenter 9.1.0/9.1.1 advisory applicability, source build, Supervisor inventory, and official checker link. `vumdb_schema_status=unmeasured` and `upgrade_clearance=not_established` always; run Broadcom KB 455737 checker or VDT on affected sources before upgrading. |
 | `get_supervisor_status` | Cluster ID, config status, Kubernetes status, API endpoint URL, network provider, and `kubernetes_version` (read from the `software/clusters` endpoint; null with a `kubernetes_version_hint` if that call fails) |
 | `list_supervisor_storage_policies` | List envelope; `items` holds vCenter storage policies: `policy` (ID), `name`, `description`. Pass the `policy` ID (not the display name) when creating a Namespace or TKC |
 
@@ -107,7 +108,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | TKC Delete Guard | Rejects if Deployments/StatefulSets/DaemonSets are running -- prevents data loss |
 | Force Override | `force=True` on `delete_tkc_cluster` bypasses workload guard (explicit acknowledgement) |
 | Audit Trail | Every MCP call and every CLI command that reaches vCenter or the Supervisor logged to `~/.vmware/audit.db` (SQLite WAL, via vmware-policy); write operations also mirrored to `~/.vmware-vks/audit.log`, with timestamp, target, operation, parameters, result, user |
-| Read-Only Majority | 15/24 tools are read-only |
+| Read-Only Majority | 16/25 tools are read-only |
 | SSL Support | Verification on by default; `verify_ssl: false` only for an isolated lab vCenter with a self-signed cert |
 | In-Memory Kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig is constructed as a Python dict and loaded via `load_kube_config_from_dict()`; the Supervisor bearer token is never written to a temp file (the pre-v1.5.18 TOCTOU window is gone). Only an explicit export (`output_path` / `-o <path>`) writes it, to an owner-only file. |
 

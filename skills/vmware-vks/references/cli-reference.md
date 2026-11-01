@@ -25,6 +25,10 @@ vmware-vks access-info [--tool create_namespace] [-t <target>]
 # Get Supervisor cluster status (ID, API endpoint, K8s version, state)
 vmware-vks supervisor status <cluster-id> [--target <name>]
 
+# Check whether the Broadcom 9.1.0/9.1.1 Supervisor upgrade advisory applies.
+# The database schema is unmeasured; only the official checker or VDT can verify it.
+vmware-vks supervisor upgrade-risk --to 9.1.1 [--target <name>]
+
 # List vCenter storage policies (Policy ID / Name / Description).
 # Pass the Policy ID — not the display name — when creating a Namespace or TKC.
 vmware-vks supervisor storage-policies [--target <name>]
