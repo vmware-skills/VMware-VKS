@@ -116,7 +116,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | vSphere Version | TKC API | Support |
 |----------------|---------|---------|
 | 8.0 / 8.0U1-U3 | `cluster.x-k8s.io/v1beta1` (ClusterClass) | Full |
-| 9.0 / 9.1 (VCF 9) | `cluster.x-k8s.io/v1` preferred (auto-detected), `v1beta1` fallback | ⚠ Not yet verified — Workload Management API surface in vSphere 9 has not been tested by maintainers. Existing 8.x code paths should work but corner cases may need testing. File issues with `check_vks_compatibility` output if you run this on VCF 9. |
+| 9.0 / 9.1 (VCF 9) | `cluster.x-k8s.io/v1` preferred (auto-detected), `v1beta1` fallback | ⚠ Partial external 9.1 report — Supervisor login works at the Supervisor endpoint, but the guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface; check guest access separately. |
 | 7.0 U3 | `run.tanzu.vmware.com/v1alpha3` | Not supported |
 | 7.0 U1-U2 | `run.tanzu.vmware.com/v1alpha1` | Not supported |
 

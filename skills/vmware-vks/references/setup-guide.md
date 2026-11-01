@@ -51,7 +51,7 @@ uv pip install -e .
 | vSphere / VCF | Support | Notes |
 |---------|---------|-------|
 | 8.0 / 8.0U1-U3 | Full | Workload Management APIs available; TKC uses `cluster.x-k8s.io/v1beta1`. |
-| 9.0 / 9.1 (VCF 9) | ⚠ Not yet verified | Workload Management (Supervisor / WCP) API surface in vSphere 9 has not been tested by maintainers. Existing vSphere 8.x code paths should work — basic CRUD likely works, corner cases may need testing. TKC API version is auto-detected (`v1` preferred when served, otherwise `v1beta1`). File issues with `check_vks_compatibility` output if you run this on VCF 9. |
+| 9.0 / 9.1 (VCF 9) | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` at the Supervisor endpoint; its guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface. TKC API version is auto-detected (`v1` preferred, then `v1beta1`). Run `check_vks_compatibility` and verify guest access separately. |
 | 7.x | Not supported | WCP API surface is different; use vSphere 8.x+. |
 
 ## Configuration

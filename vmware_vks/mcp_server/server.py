@@ -973,8 +973,8 @@ def issue_supervisor_kubeconfig(
     configured vCenter account until the JWT expires (typically hours; not
     tied to this process) — always pass output_path so the token never
     enters agent context, and report only the path. The file is created
-    owner-only (0600). Use issue_tkc_kubeconfig instead to reach workloads
-    inside a TKC cluster.
+    owner-only (0600). For TKC workloads, see issue_tkc_kubeconfig and its
+    vSphere 9.1 limitation before issuing a guest-cluster credential.
 
     Args:
         namespace: vSphere Namespace to set as the kubeconfig context.
@@ -1020,6 +1020,9 @@ def issue_tkc_kubeconfig(
     output_path='~/.kube/config' replaces the user's own kubeconfig. Run
     list_tkc_clusters first for name and namespace; use
     issue_supervisor_kubeconfig instead for Supervisor-level access.
+    On one reported VCF 9.1 deployment, the guest cluster API rejects this
+    Supervisor JWT with 401. A generated file does not prove guest access;
+    verify it against the guest API before relying on it (issue #27).
 
     Args:
         name: TKC cluster name.
