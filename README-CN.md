@@ -178,6 +178,8 @@ pip install --no-index --find-links dist vmware-vks
 | `get_harbor_info` | 内置 Harbor 仓库信息（ID、集群、版本、URL、健康状态、已用存储） | 只读 |
 | `list_namespace_storage_usage` | PVC 列表和容量统计 | 只读 |
 
+**VCF 9.1 TKC 访问：** 一份 9.1 真机报告显示，`issue_tkc_kubeconfig` 将 Supervisor JWT 写入 guest kubeconfig 后，TKC API 返回 401。生成文件不代表 guest 访问已验证；使用前请向 guest API 实测。见 [issue #27](https://github.com/vmware-skills/VMware-VKS/issues/27)。该报告中的 Supervisor 范围 TKC 读取不受影响。
+
 ### VM Service（vm-operator）
 
 | 工具 | 说明 | 类型 |
@@ -351,7 +353,7 @@ Management 权限时返回的是 **403**，不是 401。
 
 | vSphere / VCF | 支持状态 | 说明 |
 |---------|---------|------|
-| 9.0 / 9.1 | ⚠ 尚未验证 | vSphere 9 的 Workload Management（Supervisor / WCP）API 维护者尚未实测。现有 vSphere 8.x 代码路径理论上可用，但在完成实验室验证之前无任何保证 — 基本 CRUD 大概率正常工作，边界场景可能需要测试。如在 VCF 9 上运行，欢迎提交 issue 并附带 `check_vks_compatibility` 输出。 |
+| 9.0 / 9.1 | ⚠ 9.1 外部局部实测 | 一份 9.1 实验室报告确认 Supervisor `/wcp/login` 位于 Supervisor 端点，但该环境的 guest TKC API 对本 skill 生成的 kubeconfig 返回 401（[#27](https://github.com/vmware-skills/VMware-VKS/issues/27)）。维护者尚未验证完整 Workload Management API；请运行 `check_vks_compatibility` 并反馈结果。 |
 | 8.0+ | 完整支持 | Workload Management API 可用 |
 | 7.x | 不支持 | WCP API 接口不同，请使用 vSphere 8.x |
 

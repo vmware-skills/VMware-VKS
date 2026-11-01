@@ -184,6 +184,8 @@ or VDT, then back up vCenter and Supervisor before upgrading.
 | `get_harbor_info` | Embedded Harbor registry info (id, cluster, version, URL, health, storage used) | Read |
 | `list_namespace_storage_usage` | PVC list and capacity stats | Read |
 
+**VCF 9.1 TKC access:** In one live 9.1 report, `issue_tkc_kubeconfig` put a Supervisor JWT into the guest kubeconfig and the TKC API rejected it with 401. Treat the generated file as unverified for guest access; test it against the guest API before use. See [issue #27](https://github.com/vmware-skills/VMware-VKS/issues/27). Supervisor-scoped TKC reads are unaffected in that report.
+
 ### VM Service (vm-operator)
 
 | Tool | Description | Type |
@@ -366,7 +368,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 
 | vSphere / VCF | Support | Notes |
 |---------|---------|-------|
-| 9.0 / 9.1 | ⚠ Not yet verified | Workload Management (Supervisor / WCP) API surface in vSphere 9 has not been tested by maintainers. Existing vSphere 8.x code paths should work but no guarantees until a lab run is completed — basic CRUD likely works, corner cases may need testing. File issues with `check_vks_compatibility` output if you run this on VCF 9. |
+| 9.0 / 9.1 | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` on the Supervisor endpoint, but its guest TKC API rejects the kubeconfig from this skill with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full Workload Management API surface; run `check_vks_compatibility` and report results. |
 | 8.0+ | Full | Workload Management APIs available |
 | 7.x | Not supported | WCP API surface is different; use vSphere 8.x |
 

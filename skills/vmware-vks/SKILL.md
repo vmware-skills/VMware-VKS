@@ -265,6 +265,8 @@ vmware-vks preflight-auth [--target <name>]
 
 It performs the **real** login (no mocks) and reports, per target: vCenter reachable → `/wcp/login` HTTP status → parseable `session_id` → does the JWT authenticate a trivial Supervisor K8s API call. A healthy result is all four steps `✓ PASS` ending in `target '<name>': /wcp/login auth flow validated end-to-end.` (exit code 0). The login goes to the Supervisor API endpoint vCenter publishes, or to `supervisor_host` when that target sets it (vCenter itself answers 404 for `/wcp/login` on 9.1). On failure each step prints a teaching message — e.g. a 404 on `/wcp/login` means the wrong host (set `supervisor_host`) or an endpoint path that differs on your Supervisor version, a 401 on the K8s probe means `session_id` is not the bearer token on your version. It never tracebacks — every failure is status output.
 
+**TKC kubeconfig on VCF 9.1:** One live report found that `issue_tkc_kubeconfig` embeds the Supervisor JWT and the guest TKC API rejects it with 401 ([issue #27](https://github.com/vmware-skills/VMware-VKS/issues/27)). `preflight-auth` checks the Supervisor API only; a pass does not validate guest-cluster access. Verify the generated kubeconfig against the guest API before using it. The guest login request shape is still needed before this skill can issue a distinct TKC token.
+
 ### Kubeconfig retrieval fails
 
 Supervisor API endpoint must be reachable from the machine running vmware-vks. Check firewall rules for port 6443.

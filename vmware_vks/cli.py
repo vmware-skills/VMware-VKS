@@ -911,7 +911,7 @@ def kubeconfig_get(
     ),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
-    """Get TKC cluster kubeconfig (contains a bearer token; prefer -o)."""
+    """Get TKC kubeconfig (bearer token; prefer -o). Guest API returned 401 in one VCF 9.1 lab; verify before use."""
 
     from vmware_vks.ops.kubeconfig import write_kubeconfig
 
