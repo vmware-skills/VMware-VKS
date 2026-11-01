@@ -1,4 +1,4 @@
-## Unreleased — vCenter 9.1 Supervisor upgrade advisory report
+## v3.5.0 — vCenter 9.1 Supervisor upgrade advisory report (2026-11-01)
 
 * New read-only `get_supervisor_upgrade_risk` tool and `vmware-vks supervisor upgrade-risk --to 9.1.1` command report the source vCenter version/build, Supervisor inventory, and whether the published 9.1.0/9.1.1 advisory matrix applies. An unreadable inventory or unrecognized source version stays `unknown`.
 * The VUMDB schema is **always `unmeasured`** and upgrade clearance is **never established** by this report. For an affected Supervisor/VKS environment, run the official checker in [Broadcom KB 455737](https://knowledge.broadcom.com/external/article/455737) or VDT, remediate if required, and back up vCenter and Supervisor before upgrading. The no-Supervisor path was checked against a live vCenter 8.0.3; the affected 9.1 Supervisor path still needs live validation.
