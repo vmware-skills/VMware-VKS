@@ -51,12 +51,21 @@ and `truncated` is always `false`.
 | Operation | CLI | MCP Tool | Confirmation | Details |
 |-----------|-----|----------|:------------:|---------|
 | List clusters | `tkc list [-n ns]` | `list_tkc_clusters` | -- | Status, node counts, K8s version |
-| Get detail | `tkc get <name> -n <ns>` | `get_tkc_cluster` | -- | Nodes, versions, health conditions |
+| Get detail | `tkc get <name> -n <ns>` | `get_tkc_cluster` | -- | All declared worker pools, known fixed-replica total, version, health conditions |
 | Available versions | `tkc versions -n <ns>` | `get_tkc_available_versions` | -- | Supported K8s versions for Supervisor |
 | Create | `tkc create <name> -n <ns> --apply` | `create_tkc_cluster` | `confirm` | YAML plan -> confirm -> apply |
 | Scale workers | `tkc scale <name> -n <ns> --workers N` | `scale_tkc_cluster` | -- | Adjust worker node count |
 | Upgrade | `tkc upgrade <name> -n <ns> --version X.Y` | `upgrade_tkc_cluster` | -- | List available versions first |
 | Delete | `tkc delete <name> -n <ns>` | `delete_tkc_cluster` | `confirm` | Preview lists nodes and workloads; rejects if workloads running |
+
+`get_tkc_cluster.worker_pools` contains every declared pool. `worker_replica_total`
+is `null` when any pool count is autoscaled, missing, or invalid; it is not an
+observed live node count. `worker_replicas` remains the first pool's declared
+count for older clients. VKS 3.8 adds vendor-managed chained upgrades and node
+placement, but this skill has not verified 3.8 APIs or the chain in a real 9.1
+lab. `upgrade_tkc_cluster` submits one version patch only; do not infer upgrade
+clearance or placement support from this read-only summary. See the
+[VKS 3.8 release announcement](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/).
 
 ### TKC API Version Auto-Detection (v1.5.18+)
 

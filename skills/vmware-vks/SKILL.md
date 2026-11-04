@@ -186,6 +186,12 @@ to be guessed from the row count. These three read their collection in one un-pa
 | | `list_namespace_storage_usage` | Read |
 | **Permissions** | `get_access_info` | Read |
 
+`get_tkc_cluster` reports every declared worker pool and a fixed-replica total
+only when all pool counts are known. Its legacy `worker_replicas` field is the
+first pool, not the total. VKS 3.8 chained upgrades and placement policy are
+vendor capabilities, not verified behavior of this skill's single-version
+`upgrade_tkc_cluster` call; see `references/capabilities.md`.
+
 `create_namespace`, `create_tkc_cluster`, `delete_namespace`, `delete_tkc_cluster` take `confirm` (default False). Without it they change nothing and return `blast_radius`: the spec or YAML plan to be created, or what a delete destroys (TKC clusters, VMs and PVCs in the namespace; node counts and running workloads of a cluster). Show it to the user; pass `confirm=True` only after they decide on what they saw.
 
 `confirm=True` is refused while a blocker stands — TKC clusters inside a namespace, running workloads in a cluster (unless `force=True`), a name already taken — or when any part of the blast radius could not be read. the old `confirmed` and `dry_run` aliases were removed in 3.4.2 and are refused as unknown arguments.
