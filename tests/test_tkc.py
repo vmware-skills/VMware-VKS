@@ -4,7 +4,7 @@ import pytest
 from vmware_vks.ops.tkc import (
     generate_tkc_yaml,
     list_tkc_clusters,
-    get_tkc_available_versions,
+    get_tkc_cluster,
     delete_tkc_cluster,
 )
 
@@ -51,6 +51,52 @@ def test_list_tkc_clusters_empty():
         result = list_tkc_clusters(si, namespace="dev")
     assert result["items"] == []
     assert result["total"] == 0
+
+
+def test_get_tkc_cluster_reports_all_worker_pools_and_total():
+    api = MagicMock()
+    api.get_namespaced_custom_object.return_value = {
+        "spec": {"topology": {"workers": {"machineDeployments": [
+            {"name": "pool-a", "replicas": 2},
+            {"name": "pool-b", "replicas": 4},
+        ]}}},
+        "status": {"phase": "Running"},
+    }
+    with (
+        patch("vmware_vks.ops.tkc._get_custom_objects_api", return_value=api),
+        patch("vmware_vks.ops.tkc._resolve_tkc_version", return_value="v1beta1"),
+    ):
+        result = get_tkc_cluster(MagicMock(), "c1", "dev")
+    assert result["worker_replicas"] == 2  # legacy first-pool field
+    assert result["worker_pools"] == [
+        {"name": "pool-a", "replicas": 2},
+        {"name": "pool-b", "replicas": 4},
+    ]
+    assert result["worker_replica_total"] == 6
+
+
+def test_get_tkc_cluster_autoscaled_pool_keeps_total_unknown():
+    api = MagicMock()
+    api.get_namespaced_custom_object.return_value = {
+        "spec": {"topology": {"workers": {"machineDeployments": [
+            {"name": "fixed", "replicas": 2},
+            {"name": "auto", "metadata": {"annotations": {
+                "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": "1",
+                "cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": "5",
+            }}},
+        ]}}},
+        "status": {},
+    }
+    with (
+        patch("vmware_vks.ops.tkc._get_custom_objects_api", return_value=api),
+        patch("vmware_vks.ops.tkc._resolve_tkc_version", return_value="v1beta1"),
+    ):
+        result = get_tkc_cluster(MagicMock(), "c1", "dev")
+    assert result["worker_replica_total"] is None
+    assert result["worker_pools"][1] == {
+        "name": "auto", "replicas": None, "autoscaled": True,
+        "min_size": 1, "max_size": 5,
+    }
 
 
 def test_delete_tkc_cluster_requires_confirmed():

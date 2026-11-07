@@ -273,8 +273,17 @@ def get_tkc_cluster(si: ServiceInstance, name: str, namespace: str) -> dict:
         machine_deployments = (
             topology.get("workers", {}).get("machineDeployments") or []
         )
+        worker_pools = [_worker_pool(pool) for pool in machine_deployments]
         worker_replicas = (
             machine_deployments[0].get("replicas") if machine_deployments else None
+        )
+        known_worker_counts = [pool["replicas"] for pool in worker_pools]
+        worker_replica_total = (
+            sum(known_worker_counts)
+            if known_worker_counts and all(
+                isinstance(count, int) and not isinstance(count, bool) and count >= 0
+                for count in known_worker_counts
+            ) else None
         )
         return {
             "name": name,
@@ -282,7 +291,10 @@ def get_tkc_cluster(si: ServiceInstance, name: str, namespace: str) -> dict:
             "phase": status.get("phase"),
             "k8s_version": topology.get("version"),
             "control_plane_replicas": topology.get("controlPlane", {}).get("replicas"),
+            # Retained for older callers; this is only the first pool, not a total.
             "worker_replicas": worker_replicas,
+            "worker_pools": worker_pools,
+            "worker_replica_total": worker_replica_total,
             "conditions": conditions,
             "infrastructure_ready": status.get("infrastructureReady", False),
             "control_plane_ready": status.get("controlPlaneReady", False),

@@ -168,12 +168,18 @@ or VDT, then back up vCenter and Supervisor before upgrading.
 | Tool | Description | Type |
 |------|-------------|------|
 | `list_tkc_clusters` | TanzuKubernetesCluster list with status | Read |
-| `get_tkc_cluster` | Cluster detail (nodes, health, conditions) | Read |
+| `get_tkc_cluster` | Cluster detail: every worker pool, known total replicas, health, conditions | Read |
 | `get_tkc_available_versions` | Supported K8s versions on Supervisor | Read |
 | `create_tkc_cluster` | Create TKC; previews the YAML plan by default (`confirm=True` applies) | Write |
 | `scale_tkc_cluster` | Scale worker node count | Write |
 | `upgrade_tkc_cluster` | Upgrade K8s version | Write |
 | `delete_tkc_cluster` | Delete with workload guard | Write |
+
+`get_tkc_cluster.worker_pools` lists every declared worker pool. `worker_replica_total`
+is the sum only when every pool has a known fixed replica count; it is `null`
+for an autoscaled or unreadable pool. The older `worker_replicas` field remains
+the **first pool only** for compatibility and must not be interpreted as the
+cluster total.
 
 ### Access
 
@@ -371,6 +377,13 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 | 9.0 / 9.1 | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` on the Supervisor endpoint, but its guest TKC API rejects the kubeconfig from this skill with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full Workload Management API surface; run `check_vks_compatibility` and report results. |
 | 8.0+ | Full | Workload Management APIs available |
 | 7.x | Not supported | WCP API surface is different; use vSphere 8.x |
+
+VKS 3.8 introduces vendor-managed chained upgrades and more granular node
+placement ([official announcement](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)).
+This skill's `upgrade_tkc_cluster` still submits one requested Kubernetes version;
+it does not verify or orchestrate the 3.8 upgrade chain or placement policy.
+The new worker-pool summary is a read of the existing Cluster topology, not a
+VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
 
 #### Official Broadcom References
 

@@ -388,6 +388,8 @@ def test_get_tkc_cluster_tolerates_missing_topology_fields():
     ):
         result = get_tkc_cluster(_mock_si(), "c1", "dev")
     assert result["worker_replicas"] is None
+    assert result["worker_pools"] == []
+    assert result["worker_replica_total"] is None
     assert result["control_plane_replicas"] is None
     assert result["k8s_version"] is None
 

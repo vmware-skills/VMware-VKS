@@ -1,3 +1,11 @@
+## Unreleased — complete worker-pool view
+
+* `get_tkc_cluster` now returns every declared `worker_pools` entry and
+  `worker_replica_total` when all fixed counts are known. An autoscaled or
+  missing pool count makes the total `null`; the legacy `worker_replicas`
+  remains the first pool only. No new write behavior or 3.8 compatibility
+  claim is introduced. Real VCF 9.1/VKS 3.8 validation is pending.
+
 ## v3.5.0 — vCenter 9.1 Supervisor upgrade advisory report (2026-11-01)
 
 * New read-only `get_supervisor_upgrade_risk` tool and `vmware-vks supervisor upgrade-risk --to 9.1.1` command report the source vCenter version/build, Supervisor inventory, and whether the published 9.1.0/9.1.1 advisory matrix applies. An unreadable inventory or unrecognized source version stays `unknown`.

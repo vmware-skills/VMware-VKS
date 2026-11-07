@@ -693,8 +693,10 @@ def get_tkc_cluster(name: str, namespace: str, target: Optional[str] = None) -> 
     """[READ] Get detailed status for a single TKC cluster.
 
     Returns one object, not the list envelope: name, namespace, phase,
-    k8s_version, control_plane_replicas, worker_replicas, conditions,
-    infrastructure_ready, control_plane_ready. Run list_tkc_clusters first — a
+    k8s_version, control_plane_replicas, worker_pools,
+    worker_replica_total (null if any pool is autoscaled or unknown), conditions,
+    infrastructure_ready, control_plane_ready. The legacy worker_replicas field
+    names only the first pool. Run list_tkc_clusters first — a
     TKC name is only unique within one namespace. Poll this after
     create_tkc_cluster, scale_tkc_cluster or upgrade_tkc_cluster to watch an
     async change land.

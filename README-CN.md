@@ -162,12 +162,16 @@ pip install --no-index --find-links dist vmware-vks
 | 工具 | 描述 | 类型 |
 |------|------|------|
 | `list_tkc_clusters` | TanzuKubernetesCluster 列表及状态 | 只读 |
-| `get_tkc_cluster` | 集群详情（节点、健康、条件） | 只读 |
+| `get_tkc_cluster` | 集群详情（所有工作节点池、可计算的副本总数、健康与条件） | 只读 |
 | `get_tkc_available_versions` | Supervisor 上支持的 K8s 版本 | 只读 |
 | `create_tkc_cluster` | 创建 TKC；默认只预览 YAML 计划（`confirm=True` 才执行） | 写操作 |
 | `scale_tkc_cluster` | 调整工作节点数量 | 写操作 |
 | `upgrade_tkc_cluster` | 升级 K8s 版本 | 写操作 |
 | `delete_tkc_cluster` | 删除（含工作负载保护） | 写操作 |
+
+`get_tkc_cluster.worker_pools` 列出所有已声明的工作节点池。仅当每个池都有已知的固定
+副本数时，`worker_replica_total` 才给出合计；自动扩缩容或无法读取的池会使其为 `null`。
+旧字段 `worker_replicas` 为兼容性保留，**只代表第一个池**，不能当作集群总数。
 
 ### 访问
 
@@ -356,6 +360,11 @@ Management 权限时返回的是 **403**，不是 401。
 | 9.0 / 9.1 | ⚠ 9.1 外部局部实测 | 一份 9.1 实验室报告确认 Supervisor `/wcp/login` 位于 Supervisor 端点，但该环境的 guest TKC API 对本 skill 生成的 kubeconfig 返回 401（[#27](https://github.com/vmware-skills/VMware-VKS/issues/27)）。维护者尚未验证完整 Workload Management API；请运行 `check_vks_compatibility` 并反馈结果。 |
 | 8.0+ | 完整支持 | Workload Management API 可用 |
 | 7.x | 不支持 | WCP API 接口不同，请使用 vSphere 8.x |
+
+VKS 3.8 增加了官方管理的链式升级和更细的节点放置能力（见[官方发布说明](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)）。
+本 skill 的 `upgrade_tkc_cluster` 仍只提交一个指定的 Kubernetes 版本，尚未验证或编排
+3.8 的升级链及放置策略。新增的节点池摘要读取现有 Cluster 拓扑，不能据此宣称已通过
+VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
 
 ## 相关项目
 
