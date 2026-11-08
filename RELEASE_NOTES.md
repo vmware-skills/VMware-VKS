@@ -1,10 +1,12 @@
-## Unreleased — measured Cluster API discovery
+## v3.6.0 — complete worker-pool evidence and measured API discovery (2026-11-08)
 
+* Update public author/project contact metadata to `zhouwei008@gmail.com`.
+
+### measured Cluster API discovery
 * Live TKC lifecycle calls require an actually served `cluster.x-k8s.io/v1beta1` schema. Failed/invalid discovery and unsupported-only versions stop before resource reads/writes; successful or guessed versions are no longer cached across sessions or namespaces. Authentication failures remain explicit, with 401 token invalidation and discovery-client cleanup.
 * Removed the incorrect assumption that Cluster API release v1.x means an object API named `v1`. Offline YAML generation rejects unimplemented schemas and CLI create dry-runs explicitly identify their legacy template as unvalidated. This does not implement modern ClusterClass selection, `v1beta2` or 9.1 guest authentication.
 
-## Unreleased — complete worker-pool view
-
+### complete worker-pool view
 * `get_tkc_cluster` now returns every declared `worker_pools` entry and
   `worker_replica_total` when all fixed counts are known. An autoscaled or
   missing pool count makes the total `null`; the legacy `worker_replicas`
@@ -1582,7 +1584,7 @@ This release tracks vmware-pilot v1.5.17 (new `investigate_alert` template + `re
 - **[READ]/[WRITE] tool prefixes**: All MCP tool descriptions now start with [READ] or [WRITE] to clearly indicate operation type
 - **Read/write split counts**: SKILL.md MCP Tools section header shows exact read vs write tool counts
 - **Negative routing**: Description frontmatter includes "Do NOT use when..." clause to prevent misrouting
-- **Broadcom author attestation**: README.md, README-CN.md, and pyproject.toml include VMware by Broadcom author identity (wei-wz.zhou@broadcom.com) to resolve Snyk E005 brand warnings
+- **Broadcom author attestation**: README.md, README-CN.md, and pyproject.toml include VMware by Broadcom author identity (zhouwei008@gmail.com) to resolve Snyk E005 brand warnings
 
 ### VKS-specific
 

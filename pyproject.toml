@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-vks"
-version = "3.5.0"
+version = "3.6.0"
 description = "MCP Skill + CLI for managing vSphere with Tanzu (VKS) — Supervisor, Namespaces, and TanzuKubernetesCluster lifecycle"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "Wei Zhou", email = "wei-wz.zhou@broadcom.com" }]
+authors = [{ name = "Wei Zhou", email = "zhouwei008@gmail.com" }]
 dependencies = [
     "pyvmomi>=8.0.3.0,<10.0",
     "kubernetes>=29.0,<35.0",
