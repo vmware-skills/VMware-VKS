@@ -21,13 +21,13 @@ _log = logging.getLogger("vmware-vks.k8s_connection")
 # Per-host cache of the resolved Supervisor API endpoint. Each TKC op builds
 # the kubeconfig at least twice (version probe + CustomObjectsApi), and each
 # build otherwise re-runs two vCenter REST round-trips (cluster list + detail).
-# Endpoint is keyed by vCenter host so the per-(host,user) token flow and the
-# version cache in ops/tkc stay aligned. Cleared by invalidate_endpoint_for_si.
+# Endpoint is keyed by vCenter host. Capability discovery in ops/tkc is not cached.
+# Cleared by invalidate_endpoint_for_si.
 _endpoint_cache: dict[str, str] = {}
 
 
 def _si_host(si: ServiceInstance) -> str:
-    """vCenter host key for the endpoint cache (matches tkc._version_cache key)."""
+    """vCenter host key for the endpoint cache."""
     return getattr(getattr(si, "_stub", None), "host", "default")
 
 

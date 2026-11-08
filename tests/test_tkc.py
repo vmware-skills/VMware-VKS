@@ -131,7 +131,6 @@ def test_tkc_op_resolves_supervisor_endpoint_once(monkeypatch):
 
     # Isolate per-host caches so prior tests / ordering can't poison this one.
     k8sc._endpoint_cache.clear()
-    tkc._version_cache.clear()
 
     rest_calls: list[str] = []
 
