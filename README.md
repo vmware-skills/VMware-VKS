@@ -222,8 +222,8 @@ vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
   │     REST session id from POST /api/session (vmware-api-session-id header)
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
-      TKC CR apply / get / delete  (cluster.x-k8s.io API version auto-detected:
-        prefers v1 when Supervisor serves it, falls back to v1beta1 for vSphere 8.0)
+      TKC CR apply / get / delete (requires a currently served
+        cluster.x-k8s.io/v1beta1 schema; discovery failure stops the operation)
       Kubeconfig built in-memory from the POST /wcp/login bearer token
         (a third credential, and no temp file on disk)
   ↓

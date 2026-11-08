@@ -1,8 +1,8 @@
 """TanzuKubernetesCluster (TKC) lifecycle operations.
 
-Uses cluster.x-k8s.io API (vSphere 8.x). The Supervisor's served version
-is detected at runtime — vSphere 8.0 ships v1beta1, later releases may
-expose v1 alongside it. All cluster operations go through the Supervisor
+Uses the implemented cluster.x-k8s.io/v1beta1 schema only when the
+Supervisor actually serves it. Discovery errors or unsupported schemas
+stop the operation. All cluster operations go through the Supervisor
 K8s API endpoint (Layer 2).
 
 Safety:
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 from vmware_policy import paginated, sanitize
 
-from vmware_vks.errors import VksApiError, VksSafetyError, cause_summary
+from vmware_vks.errors import VksApiError, VksError, VksSafetyError, cause_summary
 
 _log = logging.getLogger("vmware-vks.ops.tkc")
 
@@ -33,13 +33,8 @@ def _translate_api_exception(si, exc, resource: str, namespace: str):
     return translate_k8s_error(si, exc, resource=resource, namespace=namespace)
 
 _TKC_GROUP = "cluster.x-k8s.io"
-_TKC_VERSION_FALLBACK = "v1beta1"
-_TKC_VERSION_PREFERENCE = ("v1", "v1beta1")  # probe order: prefer v1 if served
+_TKC_API_VERSION = "v1beta1"
 _TKC_PLURAL = "clusters"
-
-# Per-host cache: vCenter host → resolved API version. Keeps repeated calls
-# from re-probing the discovery API on every TKC operation.
-_version_cache: dict[str, str] = {}
 
 # Page size for all-namespace list calls. Chunks huge fleets over multiple
 # round-trips (limit/continue) instead of landing everything in one response.
@@ -90,42 +85,62 @@ def _list_all_typed(list_call) -> list:
 
 
 def _resolve_tkc_version(si: ServiceInstance, namespace: str) -> str:
-    """Probe the Supervisor's served cluster.x-k8s.io versions and pick one.
+    """Require a currently served API whose schema this implementation supports.
 
-    Prefers v1 when available (vSphere releases that ship Cluster API v1),
-    falls back to v1beta1 (vSphere 8.0). Result is cached per vCenter host.
+    Do not cache across users/namespaces or guess a version after a failed probe.
+    The separate endpoint cache still avoids repeated vCenter REST discovery.
     """
-    host = getattr(getattr(si, "_stub", None), "host", "default")
-    cached = _version_cache.get(host)
-    if cached:
-        return cached
-
     import kubernetes as k8s
     from vmware_vks.k8s_connection import get_k8s_client
 
     api_client = get_k8s_client(si, namespace)
     try:
-        apis = k8s.client.ApisApi(api_client)
-        groups = apis.get_api_versions().groups
-        served = set()
-        for g in groups:
-            if g.name == _TKC_GROUP:
-                served = {v.version for v in g.versions}
-                break
-        for preferred in _TKC_VERSION_PREFERENCE:
-            if preferred in served:
-                _version_cache[host] = preferred
-                return preferred
-    except Exception as e:
-        _log.warning(
-            "TKC API discovery failed on %s: %s — falling back to %s",
-            host, e, _TKC_VERSION_FALLBACK,
-        )
+        groups = k8s.client.ApisApi(api_client).get_api_versions().groups
+        if not isinstance(groups, list):
+            raise VksApiError(
+                "Cluster API discovery returned an invalid group list. "
+                "Run 'vmware-vks preflight-auth' and retry; no version was assumed."
+            )
+        served: set[str] = set()
+        for group in groups:
+            if group.name != _TKC_GROUP:
+                continue
+            versions = group.versions
+            if not isinstance(versions, list) or any(
+                not isinstance(v.version, str) for v in versions
+            ):
+                raise VksApiError(
+                    "Cluster API discovery returned invalid versions. "
+                    "Check the Supervisor discovery response; no version was assumed."
+                )
+            served.update(v.version for v in versions)
+        if _TKC_API_VERSION not in served:
+            raise VksApiError(
+                "This skill requires a served cluster.x-k8s.io/v1beta1 API. "
+                "Check the Supervisor's served schemas; v1beta2/v1 are not implemented. "
+                "No resource operation was attempted."
+            )
+        return _TKC_API_VERSION
+    except VksError:
+        raise
+    except k8s.client.exceptions.ApiException as exc:
+        if exc.status in (401, 403):
+            raise _translate_api_exception(
+                si, exc, resource="(API discovery)", namespace=namespace
+            ) from exc
+        status = exc.status if isinstance(exc.status, int) else None
+        raise VksApiError(
+            "Cluster API discovery failed. Run 'vmware-vks preflight-auth' and "
+            "check Supervisor availability before retrying; no version was assumed.",
+            status_code=status,
+        ) from exc
+    except Exception as exc:
+        raise VksApiError(
+            "Cannot discover Cluster API capabilities. Run 'vmware-vks preflight-auth' "
+            "and check Supervisor connectivity; no version was assumed."
+        ) from exc
     finally:
         api_client.close()
-
-    _version_cache[host] = _TKC_VERSION_FALLBACK
-    return _TKC_VERSION_FALLBACK
 
 
 def generate_tkc_yaml(
@@ -136,13 +151,15 @@ def generate_tkc_yaml(
     control_plane_count: int,
     worker_count: int,
     storage_class: str,
-    api_version: str = _TKC_VERSION_FALLBACK,
+    api_version: str = _TKC_API_VERSION,
 ) -> str:
     """Generate TKC cluster YAML.
 
-    api_version defaults to v1beta1 (vSphere 8.0). Pass "v1" when targeting
-    Supervisors that have promoted Cluster API to v1.
+    Offline template only: v1beta1 is the sole implemented schema. Live
+    lifecycle paths additionally require successful Supervisor discovery.
     """
+    if api_version != _TKC_API_VERSION:
+        raise ValueError("api_version must be v1beta1; other Cluster API schemas are not implemented")
     if worker_count < 1:
         raise ValueError(
             f"worker_count must be >= 1, got {worker_count}. Pass worker_count=1 "
@@ -403,7 +420,7 @@ def create_tkc_cluster(
     dry_run: bool = True,
 ) -> dict:
     """Create a TKC cluster. dry_run=True returns YAML plan without applying."""
-    version = _resolve_tkc_version(si, namespace) if not dry_run else _TKC_VERSION_FALLBACK
+    version = _resolve_tkc_version(si, namespace) if not dry_run else _TKC_API_VERSION
     yaml_str = generate_tkc_yaml(
         name=name, namespace=namespace, k8s_version=k8s_version,
         vm_class=vm_class, control_plane_count=control_plane_count,
@@ -418,7 +435,10 @@ def create_tkc_cluster(
             "name": name,
             "namespace": namespace,
             "yaml": yaml_str,
-            "hint": "Set dry_run=False to apply this manifest.",
+            "validated": False,
+            "hint": "This legacy v1beta1/ClusterClass template is not validated against "
+                    "a Supervisor. Verify its schema, ClusterClass and variables before "
+                    "applying; use the MCP create preview for live API/name checks.",
         }
 
     import kubernetes as k8s

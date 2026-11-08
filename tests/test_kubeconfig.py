@@ -1,4 +1,5 @@
 """Tests for kubeconfig ops."""
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 import pytest
 from vmware_policy.fsperms import assert_owner_only
@@ -44,7 +45,12 @@ def test_get_tkc_kubeconfig_returns_string():
         }
     }
 
-    with patch("vmware_vks.k8s_connection.get_k8s_client", return_value=mock_api_client):
+    group = SimpleNamespace(name="cluster.x-k8s.io", versions=[SimpleNamespace(version="v1beta1")])
+    probe = SimpleNamespace(get_api_versions=lambda: SimpleNamespace(groups=[group]))
+    with (
+        patch("vmware_vks.k8s_connection.get_k8s_client", return_value=mock_api_client),
+        patch("kubernetes.client.ApisApi", return_value=probe),
+    ):
         with patch("kubernetes.client.CustomObjectsApi", return_value=mock_custom_api):
             with patch(
                 "vmware_vks.wcp_login.get_wcp_token", return_value="wcp-jwt-token"
@@ -57,6 +63,7 @@ def test_get_tkc_kubeconfig_returns_string():
     # Bearer token must be the /wcp/login JWT — NOT the pyVmomi SOAP session key.
     assert "wcp-jwt-token" in result
     assert "session-123" not in result
+    assert mock_custom_api.get_namespaced_custom_object.call_args.kwargs["version"] == "v1beta1"
 
 
 def test_write_kubeconfig_to_file(tmp_path):

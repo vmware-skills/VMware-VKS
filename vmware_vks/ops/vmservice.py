@@ -65,7 +65,7 @@ _RESOURCES: dict[str, tuple[str, str]] = {
 _LIST_PAGE_LIMIT = 500
 
 # Per-vCenter-host cache of the discovered served versions for the vmoperator
-# group. Keyed the same way as tkc._version_cache so both stay aligned.
+# group. This vmoperator cache is independent of Cluster API discovery.
 _served_cache: dict[str, frozenset[str]] = {}
 
 

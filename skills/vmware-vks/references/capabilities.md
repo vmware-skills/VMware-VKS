@@ -67,16 +67,28 @@ lab. `upgrade_tkc_cluster` submits one version patch only; do not infer upgrade
 clearance or placement support from this read-only summary. See the
 [VKS 3.8 release announcement](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/).
 
-### TKC API Version Auto-Detection (v1.5.18+)
+### Measured Cluster API schema support
 
-All TKC operations resolve the `cluster.x-k8s.io` API version at runtime via the Kubernetes discovery API (`/apis`). `_resolve_tkc_version()` walks the Supervisor's served versions for the `cluster.x-k8s.io` group and picks the first match from the preference order:
+Live TKC lifecycle paths discover the Supervisor's served `cluster.x-k8s.io` versions on
+**each operation**. This implementation supports `v1beta1` only and selects it only when
+actually served, including when a newer schema is served alongside it. `v1beta2`-only,
+unknown or malformed discovery responses stop before resource reads/writes. Discovery
+authentication/permission failures remain explicit; 401 invalidates the WCP token so a
+later call can authenticate again. No guessed fallback or result from an earlier
+session/namespace is cached. The separate Supervisor endpoint cache still avoids repeated
+vCenter REST endpoint lookups.
 
-1. `v1` — used when the Supervisor has promoted Cluster API to v1 (later vSphere / VCF releases).
-2. `v1beta1` — fallback for vSphere 8.0, which is also the default for `generate_tkc_yaml()` when called without an explicit `api_version`.
+Cluster API's **release number** (such as v1.x) is not a served object API called `v1`.
+See [upstream version support](https://cluster-api.sigs.k8s.io/reference/versions).
+Adding a version string alone does not implement that schema's topology or conditions.
 
-The result is cached per vCenter host, so the discovery call happens at most once per session. If discovery fails (e.g. network blip), the code logs a warning and falls back to `v1beta1` rather than throwing.
-
-**Override** — `generate_tkc_yaml()` accepts an optional `api_version` parameter; pass `"v1"` (or any future version) explicitly when you want to pin a particular API surface for a generated TKC manifest. Most callers do not need this — auto-detection is the supported path.
+`generate_tkc_yaml()` accepts only its implemented `v1beta1` schema. CLI create dry-runs
+are **unvalidated legacy templates**, explicitly marked `validated: false`: they do not
+prove that the Supervisor serves the API or the hardcoded legacy ClusterClass. The MCP
+create preview additionally discovers the live API and checks existing names; it still
+does not validate ClusterClass variables. Modern ClusterClass selection and full
+`v1beta2` support remain separate work; no VKS 3.5+/9.1 deployment support is claimed by
+this discovery correction.
 
 ## 4. Access Layer
 
@@ -126,7 +138,7 @@ The result is cached per vCenter host, so the discovery call happens at most onc
 | vSphere Version | TKC API | Support |
 |----------------|---------|---------|
 | 8.0 / 8.0U1-U3 | `cluster.x-k8s.io/v1beta1` (ClusterClass) | Full |
-| 9.0 / 9.1 (VCF 9) | `cluster.x-k8s.io/v1` preferred (auto-detected), `v1beta1` fallback | ⚠ Partial external 9.1 report — Supervisor login works at the Supervisor endpoint, but the guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface; check guest access separately. |
+| 9.0 / 9.1 (VCF 9) | Requires a discovered, served `cluster.x-k8s.io/v1beta1`; other schemas stop | ⚠ Partial external 9.1 report — Supervisor login works at the Supervisor endpoint, but the guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface; check guest access separately. |
 | 7.0 U3 | `run.tanzu.vmware.com/v1alpha3` | Not supported |
 | 7.0 U1-U2 | `run.tanzu.vmware.com/v1alpha1` | Not supported |
 

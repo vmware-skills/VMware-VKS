@@ -768,6 +768,10 @@ def create_tkc_cluster(
     background — poll get_tkc_cluster until phase is running. Refused when the
     name is taken or the namespace's clusters could not be read. Call
     get_tkc_available_versions for k8s_version and list_vm_classes first.
+    Requires a currently served cluster.x-k8s.io/v1beta1 API; failed discovery
+    or unsupported-only schemas stop before resource access. This preview does
+    not validate the legacy ClusterClass or its variables. Modern ClusterClass
+    selection and v1beta2 are not implemented.
 
     Args:
         name: Cluster name.

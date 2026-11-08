@@ -214,8 +214,8 @@ vmware-vks CLI  ─── 或 ───  vmware-vks MCP Server（stdio）
   │     单独签发的 REST 会话 ID（放在 vmware-api-session-id 头里）
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API 端点
-      TKC CR apply / get / delete（cluster.x-k8s.io API 版本运行时自动探测：
-        Supervisor 支持 v1 时优先选 v1，否则回退 v1beta1（vSphere 8.0））
+      TKC CR apply / get / delete（每次操作要求实际发现服务端提供
+        cluster.x-k8s.io/v1beta1；发现失败即停止，不猜测或缓存回退版本）
       Kubeconfig 基于 POST /wcp/login 返回的 bearer token 在内存中构建
         （第三种凭据，同样不落盘）
   ↓

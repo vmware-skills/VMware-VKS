@@ -1,3 +1,8 @@
+## Unreleased — measured Cluster API discovery
+
+* Live TKC lifecycle calls require an actually served `cluster.x-k8s.io/v1beta1` schema. Failed/invalid discovery and unsupported-only versions stop before resource reads/writes; successful or guessed versions are no longer cached across sessions or namespaces. Authentication failures remain explicit, with 401 token invalidation and discovery-client cleanup.
+* Removed the incorrect assumption that Cluster API release v1.x means an object API named `v1`. Offline YAML generation rejects unimplemented schemas and CLI create dry-runs explicitly identify their legacy template as unvalidated. This does not implement modern ClusterClass selection, `v1beta2` or 9.1 guest authentication.
+
 ## Unreleased — complete worker-pool view
 
 * `get_tkc_cluster` now returns every declared `worker_pools` entry and
