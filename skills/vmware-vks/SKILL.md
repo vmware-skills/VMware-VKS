@@ -43,7 +43,7 @@ AI-powered VMware vSphere Kubernetes Service (VKS) management — 25 MCP tools.
 ## Quick Install
 
 ```bash
-uv tool install vmware-vks==3.6.1
+uv tool install vmware-vks==3.7.0
 vmware-vks check
 ```
 
@@ -89,7 +89,7 @@ vmware-vks check
 - Storage policy: must already exist in vCenter. `list_supervisor_storage_policies` first and pass the returned `policy` ID (not the display name); creating a TKC against a missing policy fails after CP boot, leaving partial state.
 - Control-plane count: `1` for dev, `3` for prod (HA). Cannot upgrade from 1→3 without recreating; choose right the first time.
 - Namespace quota: TKC consumes CP + worker × (cpu, memory) from namespace quota. If quota is too tight, workers fail to schedule with no obvious error.
-- TKC API version (unreleased implementation; published 3.6.1 remains v1beta1-only): live discovery selects served `cluster.x-k8s.io/v1beta1`, otherwise `v1beta2`; failed discovery and unsupported-only schemas stop. Modern creation requires an explicit installed `cluster_class` and optionally `cluster_class_namespace`. MCP preview/apply uses Supervisor admission dry-run; offline CLI YAML remains unvalidated. See [schema and ClusterClass boundaries](references/capabilities.md#measured-cluster-api-schema-support). VCF 9.1 end-to-end deployment remains unverified.
+- TKC API version (from skill 3.7.0; earlier 3.6.1 is v1beta1-only): live discovery selects served `cluster.x-k8s.io/v1beta1`, otherwise `v1beta2`; failed discovery and unsupported-only schemas stop. Modern creation requires an explicit installed `cluster_class` and optionally `cluster_class_namespace`. MCP preview/apply uses Supervisor admission dry-run; offline CLI YAML remains unvalidated. See [schema and ClusterClass boundaries](references/capabilities.md#measured-cluster-api-schema-support). VCF 9.1 end-to-end deployment remains unverified.
 
 **Steps**:
 1. `vmware-vks supervisor check --target prod` → must pass
@@ -295,7 +295,7 @@ The namespace delete guard prevents deletion when TKC clusters exist inside. Del
 ## Setup
 
 ```bash
-uv tool install vmware-vks==3.6.1
+uv tool install vmware-vks==3.7.0
 mkdir -p ~/.vmware-vks
 vmware-vks init
 ```
