@@ -69,26 +69,46 @@ clearance or placement support from this read-only summary. See the
 
 ### Measured Cluster API schema support
 
-Live TKC lifecycle paths discover the Supervisor's served `cluster.x-k8s.io` versions on
-**each operation**. This implementation supports `v1beta1` only and selects it only when
-actually served, including when a newer schema is served alongside it. `v1beta2`-only,
-unknown or malformed discovery responses stop before resource reads/writes. Discovery
-authentication/permission failures remain explicit; 401 invalidates the WCP token so a
-later call can authenticate again. No guessed fallback or result from an earlier
-session/namespace is cached. The separate Supervisor endpoint cache still avoids repeated
-vCenter REST endpoint lookups.
+**Unreleased on main. Published 3.6.1 still supports v1beta1 only. Use the following
+new parameters only with a server built from this implementation.**
 
-Cluster API's **release number** (such as v1.x) is not a served object API called `v1`.
-See [upstream version support](https://cluster-api.sigs.k8s.io/reference/versions).
-Adding a version string alone does not implement that schema's topology or conditions.
+Every live cluster operation discovers the served `cluster.x-k8s.io` versions for its
+current session and namespace. The skill uses `v1beta1` when available to preserve
+existing behavior, otherwise `v1beta2`. Unknown-only versions, failed discovery,
+authorization failures and malformed replies stop the operation; no cached fallback
+or guessed `v1` is used.
 
-`generate_tkc_yaml()` accepts only its implemented `v1beta1` schema. CLI create dry-runs
-are **unvalidated legacy templates**, explicitly marked `validated: false`: they do not
-prove that the Supervisor serves the API or the hardcoded legacy ClusterClass. The MCP
-create preview additionally discovers the live API and checks existing names; it still
-does not validate ClusterClass variables. Modern ClusterClass selection and full
-`v1beta2` support remain separate work; no VKS 3.5+/9.1 deployment support is claimed by
-this discovery correction.
+Creation accepts `cluster_class` and `cluster_class_namespace` (CLI: `--cluster-class`
+and `--cluster-class-namespace`). Select an installed, compatible class; shared VKS
+classes commonly live in `vmware-system-vks-public`. `v1beta2` requires an explicit
+class. The `v1beta1` legacy default remains `tanzukubernetescluster` for compatibility;
+it is deprecated by Broadcom and may be absent. Prefer an explicit installed class.
+The template supplies `vmClass`, `storageClass` and one `node-pool`; custom classes
+requiring other variables or worker classes need their own manifest.
+
+`v1beta1` emits `topology.class`/`classNamespace` and duration strings;
+`v1beta2` emits `topology.classRef` and `deletion.nodeDrainTimeoutSeconds`.
+Readiness uses current conditions, with legacy booleans as fallback; absent/Unknown
+readiness is `null`, not a healthy measurement. The legacy phase may be absent;
+inspect conditions on modern clusters. Existing topology and all pools remain
+preserved during scaling; upgrade changes the Kubernetes version without rebasing the class.
+
+CLI create dry-runs generate **unvalidated offline templates**; `--api-version` selects
+that template's schema only. MCP create previews use live discovery and name checks,
+then Supervisor admission (`dryRun=All`, strict field validation). Apply repeats
+admission before persistence. Rejected class/variables, unavailable dry-run webhooks,
+RBAC failures or schema errors stop creation. Admission success does not prove that
+nodes will provision or that guest access works. No automatic class selection,
+variable conversion, class rebase or upgrade clearance is provided.
+
+This is an API/schema adaptation, **not end-to-end VKS/VCF 9.1 lab validation**.
+Issue [#27](https://github.com/vmware-skills/VMware-VKS/issues/27)'s guest kubeconfig
+401 remains a separate access-validation concern.
+
+Sources: [Broadcom VKS API](https://developer.broadcom.com/xapis/vmware-vsphere-kubernetes-service/latest/api-docs.html),
+[variable reference](https://developer.broadcom.com/xapis/vmware-vsphere-kubernetes-service/latest/variable-docs.html),
+[legacy class deprecation](https://knowledge.broadcom.com/external/article/410526/guest-cluster-tkr-install-or-upgrade-to.html),
+[shared class namespace](https://knowledge.broadcom.com/external/article/416281/clusterclass-builtingenericv340-only-exi.html).
 
 ## 4. Access Layer
 
@@ -138,7 +158,7 @@ this discovery correction.
 | vSphere Version | TKC API | Support |
 |----------------|---------|---------|
 | 8.0 / 8.0U1-U3 | `cluster.x-k8s.io/v1beta1` (ClusterClass) | Full |
-| 9.0 / 9.1 (VCF 9) | Requires a discovered, served `cluster.x-k8s.io/v1beta1`; other schemas stop | ⚠ Partial external 9.1 report — Supervisor login works at the Supervisor endpoint, but the guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface; check guest access separately. |
+| 9.0 / 9.1 (VCF 9) | Discovers served `v1beta1` or `v1beta2`; explicit class and admission required for modern creation | ⚠ Partial external 9.1 report — Supervisor login works at the Supervisor endpoint, but the guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface; check guest access separately. |
 | 7.0 U3 | `run.tanzu.vmware.com/v1alpha3` | Not supported |
 | 7.0 U1-U2 | `run.tanzu.vmware.com/v1alpha1` | Not supported |
 

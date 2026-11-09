@@ -620,6 +620,9 @@ def tkc_create(
     control_plane: int = typer.Option(1, "--control-plane"),
     workers: int = typer.Option(3, "--workers"),
     storage_policy: str = typer.Option("vsphere-storage", "--storage-policy"),
+    cluster_class: Optional[str] = typer.Option(None, "--cluster-class"),
+    cluster_class_namespace: Optional[str] = typer.Option(None, "--cluster-class-namespace"),
+    api_version: str = typer.Option("v1beta1", "--api-version", help="Offline template schema"),
     apply: bool = typer.Option(False, "--apply", help="Apply (default: dry-run)"),
     target: Optional[str] = typer.Option(None, "-t", "--target"),
 ):
@@ -661,6 +664,8 @@ def tkc_create(
             worker_count=workers,
             storage_class=storage_policy,
             dry_run=not apply,
+            cluster_class=cluster_class, cluster_class_namespace=cluster_class_namespace,
+            api_version=api_version,
         )
     except Exception as e:
         if apply:

@@ -59,7 +59,6 @@ def test_select_only_the_schema_this_implementation_supports(discovery, versions
         SimpleNamespace(groups=[]),
         SimpleNamespace(groups=None),
         discovered("v1"),
-        discovered("v1beta2"),
         SimpleNamespace(groups=[SimpleNamespace(name="cluster.x-k8s.io")]),
         SimpleNamespace(
             groups=[SimpleNamespace(name="cluster.x-k8s.io", versions="v1beta1")]
@@ -118,7 +117,7 @@ def test_failed_discovery_can_recover_without_restarting(discovery, caplog):
 def test_previous_session_or_namespace_does_not_supply_capability(discovery):
     si, probe, clients, _ = discovery
     assert tkc._resolve_tkc_version(si, "dev") == "v1beta1"
-    probe.get_api_versions.return_value = discovered("v1beta2")
+    probe.get_api_versions.return_value = discovered("v1")
     another = SimpleNamespace(_stub=SimpleNamespace(host=si._stub.host))
     with pytest.raises(VksApiError):
         tkc._resolve_tkc_version(another, "prod")
@@ -128,7 +127,7 @@ def test_previous_session_or_namespace_does_not_supply_capability(discovery):
     assert len(clients) == 3 and all(c.close.call_count == 1 for c in clients)
 
 
-@pytest.mark.parametrize("version", ["v1", "v1beta2", "v1alpha3"])
+@pytest.mark.parametrize("version", ["v1", "v1alpha3"])
 def test_offline_generator_rejects_unimplemented_schemas(version):
     with pytest.raises(ValueError, match="api_version"):
         tkc.generate_tkc_yaml(
@@ -152,7 +151,7 @@ def test_mcp_create_cannot_preview_or_confirm_an_unsupported_schema(
     from vmware_vks.mcp_server import server
 
     si, probe, _, resources = discovery
-    probe.get_api_versions.return_value = discovered("v1beta2")
+    probe.get_api_versions.return_value = discovered("v1")
     monkeypatch.setattr(server, "_get_si", lambda target=None: si)
     reset_engine()
     result = server.create_tkc_cluster(

@@ -116,7 +116,8 @@ def env():
 def _no_writes(env: _Env) -> None:
     env.rest_post.assert_not_called()
     env.rest_delete.assert_not_called()
-    env.api.create_namespaced_custom_object.assert_not_called()
+    assert all(c.kwargs.get("dry_run") == "All"
+               for c in env.api.create_namespaced_custom_object.call_args_list)
     env.api.delete_namespaced_custom_object.assert_not_called()
 
 
@@ -399,7 +400,9 @@ def test_create_tkc_confirm_creates_once(env):
     result = _create_tkc(confirm=True)
     assert result["action"] == "created"
     assert result["blast_radius"]["node_count"] == 5
-    env.api.create_namespaced_custom_object.assert_called_once()
+    creates = env.api.create_namespaced_custom_object.call_args_list
+    assert len([c for c in creates if c.kwargs.get("dry_run") != "All"]) == 1
+    assert len([c for c in creates if c.kwargs.get("dry_run") == "All"]) == 2
 
 
 def test_create_tkc_existing_name_blocks(env):

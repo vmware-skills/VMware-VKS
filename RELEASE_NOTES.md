@@ -1,3 +1,9 @@
+## Unreleased
+
+* Support discovered Cluster API v1beta2 alongside v1beta1, with schema-specific ClusterClass references and drain timeout fields.
+* Allow explicit ClusterClass name/namespace in CLI and MCP creation; require it on v1beta2. MCP preview and apply validate with Supervisor admission dry-run and strict fields before persistence. Offline CLI templates remain unvalidated; no automatic rebase or variable conversion is performed.
+* Read current readiness conditions without turning absent/Unknown evidence into a healthy result. No end-to-end VCF 9.1 or guest kubeconfig compatibility is claimed.
+
 ## v3.6.1 — Security documentation and Gemini extension packaging
 
 Released 2026-11-09.

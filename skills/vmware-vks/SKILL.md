@@ -89,7 +89,7 @@ vmware-vks check
 - Storage policy: must already exist in vCenter. `list_supervisor_storage_policies` first and pass the returned `policy` ID (not the display name); creating a TKC against a missing policy fails after CP boot, leaving partial state.
 - Control-plane count: `1` for dev, `3` for prod (HA). Cannot upgrade from 1→3 without recreating; choose right the first time.
 - Namespace quota: TKC consumes CP + worker × (cpu, memory) from namespace quota. If quota is too tight, workers fail to schedule with no obvious error.
-- TKC API version: auto-detected at runtime via the K8s discovery API (prefers `cluster.x-k8s.io/v1` when the Supervisor serves it, falls back to `v1beta1` on vSphere 8.0). No manual selection needed; advanced callers can override via the `api_version` parameter on `generate_tkc_yaml()`.
+- TKC API version (unreleased implementation; published 3.6.1 remains v1beta1-only): live discovery selects served `cluster.x-k8s.io/v1beta1`, otherwise `v1beta2`; failed discovery and unsupported-only schemas stop. Modern creation requires an explicit installed `cluster_class` and optionally `cluster_class_namespace`. MCP preview/apply uses Supervisor admission dry-run; offline CLI YAML remains unvalidated. See [schema and ClusterClass boundaries](references/capabilities.md#measured-cluster-api-schema-support). VCF 9.1 end-to-end deployment remains unverified.
 
 **Steps**:
 1. `vmware-vks supervisor check --target prod` → must pass
@@ -132,7 +132,7 @@ vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
   │   Supervisor status, storage policies, Namespace CRUD, VM classes, Harbor
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
-      TKC CR apply / get / delete  (cluster.x-k8s.io/v1beta1)
+      TKC CR apply / get / delete  (served cluster.x-k8s.io/v1beta1 or v1beta2)
       Kubeconfig bearer token from POST /wcp/login (Supervisor JWT)
   ↓
 vCenter Server 8.x+ (Workload Management enabled)
