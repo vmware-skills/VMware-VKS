@@ -13,6 +13,10 @@ MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Super
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+MCP uses local stdio by default. Opt-in HTTPS opens the configured listener and requires TLS plus caller authentication; it is a network service, not a local-only mode. Credential examples create owner-only placeholder files without overwriting existing files; edit secrets locally.
+
+Skills.sh examples pin `skills@1.7.6` (Node.js >=22.20.0) separately from the repository release tag. These pins do not lock transitive dependencies.
+
 ## Upgrading to 3.0
 
 3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
@@ -61,7 +65,7 @@ Run `vmware-vks check` after setup to verify all requirements are met.
 
 ```bash
 # Install
-uv tool install vmware-vks
+uv tool install vmware-vks==3.6.0
 
 # Configure
 mkdir -p ~/.vmware-vks
@@ -70,8 +74,14 @@ cp config.example.yaml ~/.vmware-vks/config.yaml
 
 # One password env var per target, named after the target in config.yaml:
 # target "vcenter01" (the one config.example.yaml ships) -> VMWARE_VKS_VCENTER01_PASSWORD
-echo "VMWARE_VKS_VCENTER01_PASSWORD=your_password" > ~/.vmware-vks/.env
-chmod 600 ~/.vmware-vks/.env
+(
+  umask 077
+  set -C  # Refuse existing files; edit an existing .env locally instead
+  cat > ~/.vmware-vks/.env <<'EOF'
+VMWARE_VKS_VCENTER01_PASSWORD=REPLACE_IN_LOCAL_EDITOR
+EOF
+)
+# Before continuing, edit .env locally; never type live secrets into shell commands.
 
 # Verify
 vmware-vks check
@@ -83,6 +93,8 @@ vmware-vks tkc list
 vmware-vks tkc create my-cluster -n dev --version v1.28.4+vmware.1 --vm-class best-effort-large
 vmware-vks tkc create my-cluster -n dev --apply
 ```
+
+This writes placeholders only. Enter passwords or tokens using a local editor after creation; do not paste live credentials into terminal commands, chat or commits. If the file exists, the command refuses to overwrite it; edit the existing file after checking its permissions are `600`.
 
 ## Offline / Air-Gapped Install (from source)
 
@@ -273,7 +285,7 @@ vmware-vks storage -n <namespace>
 
 ## MCP Server
 
-**After `uv tool install vmware-vks`, start the MCP server with one command** (v1.5.15+):
+**After `uv tool install vmware-vks==3.6.0`, start the MCP server with one command** (v1.5.15+):
 
 ```bash
 # Recommended — single command, no network re-resolve
@@ -306,7 +318,7 @@ Add to your AI agent's MCP config:
 
 ```bash
 # Run without installing (requires PyPI access each launch)
-uvx --from vmware-vks vmware-vks mcp
+uvx --from vmware-vks==3.6.0 vmware-vks mcp
 
 # Legacy entry point (still works, kept for backward compatibility)
 vmware-vks-mcp
@@ -329,7 +341,7 @@ vmware-vks-mcp
 | In-memory kubeconfig | For the skill's own API calls the Supervisor/TKC kubeconfig (with the Supervisor bearer token) is built as an in-memory dict and loaded via `load_kube_config_from_dict()` — never written to a temp file on disk (v1.5.18+) |
 | Kubeconfig is credential access | `issue_supervisor_kubeconfig` / `issue_tkc_kubeconfig` return a bearer token valid for hours: annotated `readOnlyHint: false` (clients ask first), `risk_level: medium`, audit row redacts the kubeconfig. Run only on explicit request; export with `output_path` / `-o` to an owner-only (0600) file |
 | Audit logging | All write operations logged to `~/.vmware-vks/audit.log` |
-| stdio transport | No network listener; MCP runs over stdio only |
+| MCP transport | Local stdio by default; optional authenticated HTTPS opens the configured listener |
 
 ## Troubleshooting
 

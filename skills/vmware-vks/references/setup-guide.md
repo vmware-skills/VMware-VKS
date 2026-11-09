@@ -8,7 +8,7 @@ All install methods fetch from the same source: [github.com/vmware-skills/VMware
 
 ```bash
 # Via Skills.sh (fetches from GitHub)
-npx skills add vmware-skills/VMware-VKS#v3.6.0
+npx skills@1.7.6 add vmware-skills/VMware-VKS#v3.6.0
 
 # Via ClawHub (fetches from ClawHub registry snapshot of GitHub)
 clawhub install @zw008/vmware-vks --version 3.6.0
@@ -16,6 +16,8 @@ clawhub install @zw008/vmware-vks --version 3.6.0
 # Via PyPI (recommended for version pinning)
 uv tool install vmware-vks==3.6.0
 ```
+
+The installer is pinned to `skills@1.7.6` (Node.js >=22.20.0); the repository tag separately selects the skill revision. Review the installer and its dependencies before running it. Pinning the top-level package does not lock its dependency graph. Alternative: use the release-tagged manual copy below.
 
 ### Claude Code
 
@@ -72,12 +74,20 @@ targets:
     environment: production
 EOF
 
-echo "VMWARE_VKS_VCENTER01_PASSWORD=your_password" > ~/.vmware-vks/.env
-chmod 600 ~/.vmware-vks/.env
+(
+  umask 077
+  set -C  # Refuse existing files; edit an existing .env locally instead
+  cat > ~/.vmware-vks/.env <<'EOF'
+VMWARE_VKS_VCENTER01_PASSWORD=REPLACE_IN_LOCAL_EDITOR
+EOF
+)
+# Before continuing, edit .env locally; never type live secrets into shell commands.
 
 # 3. Verify
 vmware-vks check
 ```
+
+This writes placeholders only. Enter passwords or tokens using a local editor after creation; do not paste live credentials into terminal commands, chat or commits. If the file exists, the command refuses to overwrite it; edit the existing file after checking its permissions are `600`.
 
 `supervisor_host` (optional, per target): the Supervisor API address. It is used for the Kubernetes login
 (`POST https://<supervisor>/wcp/login`, port 443) and for every Supervisor API call. When unset, both go to the
@@ -109,7 +119,7 @@ For Claude Code / Cursor users who prefer structured tool calls, add to `~/.clau
 ```
 
 > v1.5.15+ recommends the single-command form `vmware-vks mcp`. Pre-1.5.15 used
-> `uvx --from vmware-vks vmware-vks-mcp`, which still works but re-resolves from <!-- install-pin: historical -->
+> `uvx --from vmware-vks==3.6.0 vmware-vks-mcp`, which still works but re-resolves from
 > PyPI on each launch and breaks behind corporate TLS proxies. The legacy
 > `vmware-vks-mcp` entry point is also kept for backward compatibility.
 
@@ -239,7 +249,7 @@ This skill follows a defense-in-depth approach with six security properties:
 
 2. **Credentials** -- `config.yaml` contains vCenter hostnames and usernames only. Passwords are loaded exclusively from `~/.vmware-vks/.env` (read via `python-dotenv`). Passwords are never logged, never echoed to CLI output, and never included in audit log entries. **Kubeconfig retrieval is credential access**: `issue_supervisor_kubeconfig` / `issue_tkc_kubeconfig` (CLI: `kubeconfig supervisor` / `kubeconfig get`) return a kubeconfig embedding a Supervisor bearer token (JWT from `POST /wcp/login`) that acts as the configured vCenter account until it expires — typically hours, not tied to the vmware-vks process. Both MCP tools are annotated `readOnlyHint: false` and `risk_level: medium`; run them only on explicit user request and always export with `output_path` / `-o <path>` (owner-only 0600 file) instead of printing the token. Their audit rows redact the returned kubeconfig. **In-memory kubeconfig (v1.5.18+)**: for the skill's own API calls the kubeconfig is built as a Python dict and handed to the kubernetes client via `load_kube_config_from_dict()`, so the token is never written to a temp file; only an explicit export writes it to disk.
 
-3. **Network Scope** -- No webhook, HTTP listener, or inbound network connection is ever started. MCP transport is stdio only. Outbound connections go to the user-configured vCenter, to the Supervisor Kubernetes API endpoint that vCenter reports for the cluster (`api_server_cluster_endpoint`), and — for `delete_tkc_cluster`'s running-workload check only — to that TKC cluster's control-plane endpoint as recorded on the Supervisor.
+3. **Network Scope** -- No webhooks. Default stdio starts no listener; opt-in HTTPS opens the configured listener and requires TLS plus caller authentication. Outbound connections go to the user-configured vCenter, to the Supervisor Kubernetes API endpoint that vCenter reports for the cluster (`api_server_cluster_endpoint`), and — for `delete_tkc_cluster`'s running-workload check only — to that TKC cluster's control-plane endpoint as recorded on the Supervisor.
 
 4. **TLS Verification** -- On by default (`verify_ssl: true`), for both the SOAP API and REST API connections. Keep it on: the account is privileged, and with verification off anyone on the network path can impersonate vCenter and capture its password. For a certificate from a private CA, add that CA to the trust store (or point `SSL_CERT_FILE` at a PEM bundle containing it) instead of turning verification off. `verify_ssl: false` is for an isolated lab vCenter with a self-signed certificate only, never for a production target.
 
