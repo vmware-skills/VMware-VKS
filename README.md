@@ -1,58 +1,49 @@
 <!-- mcp-name: io.github.vmware-skills/vmware-vks -->
+
 # VMware VKS
 
-For a read-only check of this skill with your model and agent host, use the shared [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md) in the marketplace root.
+[![PyPI](https://img.shields.io/pypi/v/vmware-vks)](https://pypi.org/project/vmware-vks/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#readme-license)
 
-> **Author**: Wei Zhou, VMware by Broadcom — zhouwei008@gmail.com
-> This is a community-driven project by a VMware engineer, not an official VMware product.
-> For official VMware developer tools see [developer.broadcom.com](https://developer.broadcom.com).
+English | [中文](README-CN.md)
 
-[English](README.md) | [中文](README-CN.md)
+Maintainer: Wei Zhou · [zhouwei008@gmail.com](mailto:zhouwei008@gmail.com)
+
+Community-maintained open-source project; not an official VMware or Broadcom product.
+
+[Overview](#readme-overview) · [Quick Start](#readme-quick-start) · [MCP Configuration](#readme-mcp-configuration) · [Capabilities and Workflows](#readme-capabilities-and-workflows) · [Safety and Audit](#readme-safety-and-audit) · [Troubleshooting](#readme-troubleshooting) · [Companion Skills](#readme-companion-skills) · [Reference](#readme-reference) · [License](#readme-license)
+
+<a id="readme-overview"></a>
+
+## Overview
+
+Runs locally over stdio by default; configure required targets and credentials on your own machine.
 
 MCP Skill + CLI for VMware vSphere Kubernetes Service (VKS) management — Supervisor clusters, vSphere Namespaces, and VKS Cluster lifecycle. 25 MCP tools.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 MCP uses local stdio by default. Opt-in HTTPS opens the configured listener and requires TLS plus caller authentication; it is a network service, not a local-only mode. Credential examples create owner-only placeholder files without overwriting existing files; edit secrets locally.
 
 Skills.sh examples pin `skills@1.7.6` (Node.js >=22.20.0) separately from the repository release tag. These pins do not lock transitive dependencies.
 
-## Upgrading to 3.0
+Full agent instructions: [`skills/vmware-vks/SKILL.md`](skills/vmware-vks/SKILL.md).
 
-3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
-`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
-read something, and a `get_` name told agents otherwise. Parameters, annotations, safety and CLI commands
-(`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch (saved vmware-pilot workflows are translated by Pilot ≥ 2.0.0). Deny
-rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-policy ≥ 1.19.0. Details in
-[RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do).
+<a id="readme-quick-start"></a>
 
-## Upgrading to 2.0
+## Quick Start
 
-2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` →
-`list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`. The reason is a name
-clash: in the family's 2.0, vmware-aiops and vmware-monitor call their **vSphere** VM snapshot tool `list_vm_snapshots`,
-while these list **Kubernetes VM Service** (vm-operator) objects. **Trap:** an agent prompt, script or saved workflow
-that still calls `list_vm_snapshots` with vmware-aiops or vmware-monitor also loaded now reaches the vSphere tool, not
-this one — update it. A VKS-scoped deny rule naming `list_vm_snapshots` now also matches the aiops/monitor tool
-(vmware-policy ≥ 1.18 matches both names; `vmware-audit policy` lists such rules). Parameters, safety gates and CLI
-commands are unchanged; the full table is in [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first).
-If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
-against both the old and the new name, so one file serves both.
+Requires Python `>=3.10` and `uv`.
 
-## Companion Skills
+```bash
+uv tool install vmware-vks==3.6.1
+vmware-vks --help
+```
 
-> **Part of the VMware MCP Skills family.** Each skill handles a distinct domain — install only what you need.
+Target, credential and local data setup: [setup guide](skills/vmware-vks/references/setup-guide.md).
 
-| Skill | Scope | Tools | Install |
-|-------|-------|:-----:|---------|
-| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ entry point | VM lifecycle, deployment, guest ops, clusters | 49 | `uv tool install vmware-aiops` |
-| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | Read-only monitoring, alarms, events, VM info | 27 | `uv tool install vmware-monitor` |
-| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | Datastores, iSCSI, vSAN | 11 | `uv tool install vmware-storage` |
-| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX networking: segments, gateways, NAT, IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
-| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW microsegmentation, security groups, Traceflow | 21 | `uv tool install vmware-nsx-security` |
-| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops metrics, alerts, capacity planning | 28 | `uv tool install vmware-aria` |
+<details>
+<summary>Installation and configuration details (including offline setup)</summary>
 
-## Prerequisites
+### Prerequisites
 
 - **Python 3.10+** — required for `uv tool install`
 - **vSphere 8.0+** — Workload Management (Supervisor) APIs require vSphere 8.x
@@ -61,7 +52,8 @@ against both the old and the new name, so one file serves both.
 
 Run `vmware-vks check` after setup to verify all requirements are met.
 
-## Quick Start
+
+### Quick Start
 
 ```bash
 # Install
@@ -96,7 +88,8 @@ vmware-vks tkc create my-cluster -n dev --apply
 
 This writes placeholders only. Enter passwords or tokens using a local editor after creation; do not paste live credentials into terminal commands, chat or commits. If the file exists, the command refuses to overwrite it; edit the existing file after checking its permissions are `600`.
 
-## Offline / Air-Gapped Install (from source)
+
+### Offline / Air-Gapped Install (from source)
 
 This project uses the modern PEP 517 build system (hatchling), so there is **no
 `setup.py`** by design — that is expected, not a missing file. If you cloned the
@@ -124,9 +117,90 @@ pip wheel . -w dist        # → dist/*.whl   (or: uv build, for just this packa
 pip install --no-index --find-links dist vmware-vks
 ```
 
-## Common Workflows
 
-### Deploy a New TKC Cluster
+</details>
+
+<a id="readme-mcp-configuration"></a>
+
+## MCP Configuration
+
+Copy this configuration into your MCP client's local stdio settings. The client must be able to find `uvx`; the initial package installation requires access to a package index.
+
+```json
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "command": "uvx",
+      "args": ["--from", "vmware-vks==3.6.1", "vmware-vks-mcp"],
+      "env": {
+        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
+      }
+    }
+  }
+}
+```
+
+The following sections retain preinstalled CLI alternatives and product-specific MCP options.
+
+<details>
+<summary>Preinstalled CLI and additional MCP options</summary>
+
+### MCP Server
+
+**After `uv tool install vmware-vks==3.6.1`, start the MCP server with one command** (v1.5.15+):
+
+```bash
+# Recommended — single command, no network re-resolve
+vmware-vks mcp
+
+# With a custom config path
+VMWARE_VKS_CONFIG=/path/to/config.yaml vmware-vks mcp
+```
+
+#### Agent Configuration
+
+Add to your AI agent's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "command": "vmware-vks",
+      "args": ["mcp"],
+      "env": {
+        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
+      }
+    }
+  }
+}
+```
+
+<details>
+<summary>Alternative: uvx (no install) or legacy entry point</summary>
+
+```bash
+# Run without installing (requires PyPI access each launch)
+uvx --from vmware-vks==3.6.1 vmware-vks mcp
+
+# Legacy entry point (still works, kept for backward compatibility)
+vmware-vks-mcp
+```
+
+> **Behind a corporate TLS proxy?** uvx may fail with `invalid peer certificate: UnknownIssuer`.
+> Use the recommended `vmware-vks mcp` form above (no network needed), or set `UV_NATIVE_TLS=true`.
+
+</details>
+
+
+</details>
+
+<a id="readme-capabilities-and-workflows"></a>
+
+## Capabilities and Workflows
+
+### Common Workflows
+
+#### Deploy a New TKC Cluster
 
 1. Check compatibility → `vmware-vks check`
 2. List available K8s versions → `vmware-vks tkc versions -n dev`
@@ -134,22 +208,22 @@ pip install --no-index --find-links dist vmware-vks
 4. Create TKC cluster → `vmware-vks tkc create dev-cluster -n dev --version v1.28.4+vmware.1 --control-plane 1 --workers 3 --vm-class best-effort-large --apply`
 5. Get kubeconfig (credential; only when you need cluster access) → `vmware-vks kubeconfig get dev-cluster -n dev -o ./kubeconfig` — writes an owner-only file instead of printing the token
 
-### Scale Workers for Load Testing
+#### Scale Workers for Load Testing
 
 1. Check current state → `vmware-vks tkc get dev-cluster -n dev`
 2. Scale up → `vmware-vks tkc scale dev-cluster -n dev --workers 6`
 3. Monitor progress → `vmware-vks tkc get dev-cluster -n dev` (watch phase)
 4. Scale back down after test
 
-### Namespace Resource Management
+#### Namespace Resource Management
 
 1. List namespaces → `vmware-vks namespace list`
 2. Check usage → `vmware-vks storage -n dev`
 3. Update quota → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## Tool Reference (25 tools)
+### Tool Reference (25 tools)
 
-### Supervisor
+#### Supervisor
 
 | Tool | Description | Type |
 |------|-------------|------|
@@ -164,7 +238,7 @@ schema or establish upgrade clearance. If a Supervisor/VKS environment is in
 scope, follow the [Broadcom checker and remediation instructions](https://knowledge.broadcom.com/external/article/455737)
 or VDT, then back up vCenter and Supervisor before upgrading.
 
-### Namespace
+#### Namespace
 
 | Tool | Description | Type |
 |------|-------------|------|
@@ -175,7 +249,7 @@ or VDT, then back up vCenter and Supervisor before upgrading.
 | `delete_namespace` | Delete with TKC guard (rejects if clusters exist) | Write |
 | `list_vm_classes` | Available VM classes for TKC sizing | Read |
 
-### TKC
+#### TKC
 
 | Tool | Description | Type |
 |------|-------------|------|
@@ -193,7 +267,7 @@ for an autoscaled or unreadable pool. The older `worker_replicas` field remains
 the **first pool only** for compatibility and must not be interpreted as the
 cluster total.
 
-### Access
+#### Access
 
 | Tool | Description | Type |
 |------|-------------|------|
@@ -204,7 +278,7 @@ cluster total.
 
 **VCF 9.1 TKC access:** In one live 9.1 report, `issue_tkc_kubeconfig` put a Supervisor JWT into the guest kubeconfig and the TKC API rejected it with 401. Treat the generated file as unverified for guest access; test it against the guest API before use. See [issue #27](https://github.com/vmware-skills/VMware-VKS/issues/27). Supervisor-scoped TKC reads are unaffected in that report.
 
-### VM Service (vm-operator)
+#### VM Service (vm-operator)
 
 | Tool | Description | Type |
 |------|-------------|------|
@@ -212,39 +286,13 @@ cluster total.
 | `list_vm_service_groups` | VirtualMachineGroup objects and their boot order in a Namespace | Read |
 | `list_vm_service_network_interfaces` | Network interfaces (multi-NIC) of one VM Service VirtualMachine | Read |
 
-### Permissions
+#### Permissions
 
 | Tool | Description | Type |
 |------|-------------|------|
 | `get_access_info` | Which account the server uses and whether it holds each tool's vSphere privileges on the root folder. Kubernetes calls are authorized by the namespace's own permissions, which it does not check | Read |
 
-## Architecture
-
-```
-User (Natural Language)
-  ↓
-AI Agent (Claude Code / Goose / Cursor)
-  ↓ reads SKILL.md
-  ↓
-vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
-  │
-  ├─ Layer 1: pyVmomi (/sdk) + vSphere Automation REST (/api)
-  │   Supervisor status, storage policies, Namespace CRUD, VM classes, Harbor
-  │   Two session stores: the SOAP session from SmartConnect, and a separate
-  │     REST session id from POST /api/session (vmware-api-session-id header)
-  │
-  └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
-      TKC CR apply / get / delete (requires a currently served
-        cluster.x-k8s.io/v1beta1 schema; discovery failure stops the operation)
-      Kubeconfig built in-memory from the POST /wcp/login bearer token
-        (a third credential, and no temp file on disk)
-  ↓
-vCenter Server 8.x+ (Workload Management enabled)
-  ↓
-Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
-```
-
-## CLI Reference
+### CLI Reference
 
 ```bash
 # Pre-flight diagnostics
@@ -283,53 +331,11 @@ vmware-vks harbor
 vmware-vks storage -n <namespace>
 ```
 
-## MCP Server
+<a id="readme-safety-and-audit"></a>
 
-**After `uv tool install vmware-vks==3.6.1`, start the MCP server with one command** (v1.5.15+):
+## Safety and Audit
 
-```bash
-# Recommended — single command, no network re-resolve
-vmware-vks mcp
-
-# With a custom config path
-VMWARE_VKS_CONFIG=/path/to/config.yaml vmware-vks mcp
-```
-
-### Agent Configuration
-
-Add to your AI agent's MCP config:
-
-```json
-{
-  "mcpServers": {
-    "vmware-vks": {
-      "command": "vmware-vks",
-      "args": ["mcp"],
-      "env": {
-        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
-      }
-    }
-  }
-}
-```
-
-<details>
-<summary>Alternative: uvx (no install) or legacy entry point</summary>
-
-```bash
-# Run without installing (requires PyPI access each launch)
-uvx --from vmware-vks==3.6.1 vmware-vks mcp
-
-# Legacy entry point (still works, kept for backward compatibility)
-vmware-vks-mcp
-```
-
-> **Behind a corporate TLS proxy?** uvx may fail with `invalid peer certificate: UnknownIssuer`.
-> Use the recommended `vmware-vks mcp` form above (no network needed), or set `UV_NATIVE_TLS=true`.
-
-</details>
-
-## Safety
+### Safety
 
 | Feature | Description |
 |---------|-------------|
@@ -343,79 +349,7 @@ vmware-vks-mcp
 | Audit logging | All write operations logged to `~/.vmware-vks/audit.log` |
 | MCP transport | Local stdio by default; optional authenticated HTTPS opens the configured listener |
 
-## Troubleshooting
-
-### "VKS not compatible" error
-
-Workload Management must be enabled in vCenter. Check: vCenter UI -> Workload Management. Requires vSphere 8.x+ with Enterprise Plus or VCF license.
-
-### Every command fails with "session is not authenticated"
-
-The password is right. Either the session expired (run the command again; a new session is opened) or the account has no vSphere role, so vCenter shows no session for it and every call fails. VKS does not refuse such a login when it connects, because an account holding only Supervisor namespace permissions can look the same and still work; the error appears on the first call that needs a role. Assign the account a role (Read-Only or higher) on the vCenter root folder under Administration > Access Control > Global Permissions; Namespace and TKC work also needs Workload Management privileges.
-
-### Every REST tool returns 401
-
-The namespace, storage-policy and Supervisor-status tools authenticate against
-the vSphere Automation REST API with a session id from `POST /api/session` —
-**not** the pyVmomi SOAP session key, which that API never issued and always
-rejects. A 401 is refreshed automatically once; if it persists, check whether a
-proxy between you and vCenter strips the `vmware-api-session-id` header. An
-account short of Workload Management permissions gets a **403**, not a 401.
-
-### Namespace creation fails with "storage policy not found"
-
-List policies first: `vmware-vks supervisor storage-policies`, then pass the **Policy ID** column value (not the display name) as `--storage-policy`.
-
-### TKC cluster stuck in "Creating" phase
-
-Check Supervisor events in vCenter. Common causes: insufficient resources on ESXi hosts, network issues with NSX-T, or storage policy not available on target datastore.
-
-### Kubeconfig retrieval fails
-
-Supervisor API endpoint must be reachable from the machine running vmware-vks. Check firewall rules for port 6443.
-
-### Scale operation has no effect
-
-Verify the cluster is in "Running" phase before scaling. Clusters in "Creating" or "Updating" phase reject scale operations.
-
-### Delete namespace rejected unexpectedly
-
-The namespace delete guard prevents deletion when TKC clusters exist inside. Delete all TKC clusters in the namespace first, then retry.
-
-## Version Compatibility
-
-| vSphere / VCF | Support | Notes |
-|---------|---------|-------|
-| 9.0 / 9.1 | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` on the Supervisor endpoint, but its guest TKC API rejects the kubeconfig from this skill with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full Workload Management API surface; run `check_vks_compatibility` and report results. |
-| 8.0+ | Full | Workload Management APIs available |
-| 7.x | Not supported | WCP API surface is different; use vSphere 8.x |
-
-VKS 3.8 introduces vendor-managed chained upgrades and more granular node
-placement ([official announcement](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)).
-This skill's `upgrade_tkc_cluster` still submits one requested Kubernetes version;
-it does not verify or orchestrate the 3.8 upgrade chain or placement policy.
-The new worker-pool summary is a read of the existing Cluster topology, not a
-VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
-
-#### Official Broadcom References
-
-- **SDKs**: <https://developer.broadcom.com/sdks> — VCF Python SDK (unified SDK in VCF 9+)
-- **REST APIs**: <https://developer.broadcom.com/xapis> — vSphere Automation API (Workload Management endpoints)
-- **CLI Tools**: <https://developer.broadcom.com/tools> — kubectl-vsphere, PowerCLI 9.1
-
-## Related Projects
-
-| Skill | Scope | Tools | Install |
-|-------|-------|:-----:|---------|
-| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ entry point | VM lifecycle, deployment, guest ops, clusters | 49 | `uv tool install vmware-aiops` |
-| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | Read-only monitoring, alarms, events, VM info | 27 | `uv tool install vmware-monitor` |
-| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | Datastores, iSCSI, vSAN | 11 | `uv tool install vmware-storage` |
-| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX networking: segments, gateways, NAT, IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
-| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW microsegmentation, security groups, Traceflow | 21 | `uv tool install vmware-nsx-security` |
-| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops metrics, alerts, capacity planning | 28 | `uv tool install vmware-aria` |
-
-<!-- usage: remote-and-exposure -->
-## Remote access (HTTPS) and limiting tools
+### Remote access (HTTPS) and limiting tools
 
 By default `vmware-vks mcp` speaks stdio to one local client and offers every tool. Two options change that
 (vmware-policy ≥ 1.21.0).
@@ -480,6 +414,160 @@ Tools not offered do not appear in the client's tool list. A bad value or an unk
 least-privilege.
 
 Details: `skills/vmware-vks/references/setup-guide.md` ("Serving MCP over HTTPS", "Limiting which tools are offered").
+
+<a id="readme-troubleshooting"></a>
+
+## Troubleshooting
+
+### Troubleshooting
+
+#### "VKS not compatible" error
+
+Workload Management must be enabled in vCenter. Check: vCenter UI -> Workload Management. Requires vSphere 8.x+ with Enterprise Plus or VCF license.
+
+#### Every command fails with "session is not authenticated"
+
+The password is right. Either the session expired (run the command again; a new session is opened) or the account has no vSphere role, so vCenter shows no session for it and every call fails. VKS does not refuse such a login when it connects, because an account holding only Supervisor namespace permissions can look the same and still work; the error appears on the first call that needs a role. Assign the account a role (Read-Only or higher) on the vCenter root folder under Administration > Access Control > Global Permissions; Namespace and TKC work also needs Workload Management privileges.
+
+#### Every REST tool returns 401
+
+The namespace, storage-policy and Supervisor-status tools authenticate against
+the vSphere Automation REST API with a session id from `POST /api/session` —
+**not** the pyVmomi SOAP session key, which that API never issued and always
+rejects. A 401 is refreshed automatically once; if it persists, check whether a
+proxy between you and vCenter strips the `vmware-api-session-id` header. An
+account short of Workload Management permissions gets a **403**, not a 401.
+
+#### Namespace creation fails with "storage policy not found"
+
+List policies first: `vmware-vks supervisor storage-policies`, then pass the **Policy ID** column value (not the display name) as `--storage-policy`.
+
+#### TKC cluster stuck in "Creating" phase
+
+Check Supervisor events in vCenter. Common causes: insufficient resources on ESXi hosts, network issues with NSX-T, or storage policy not available on target datastore.
+
+#### Kubeconfig retrieval fails
+
+Supervisor API endpoint must be reachable from the machine running vmware-vks. Check firewall rules for port 6443.
+
+#### Scale operation has no effect
+
+Verify the cluster is in "Running" phase before scaling. Clusters in "Creating" or "Updating" phase reject scale operations.
+
+#### Delete namespace rejected unexpectedly
+
+The namespace delete guard prevents deletion when TKC clusters exist inside. Delete all TKC clusters in the namespace first, then retry.
+
+<a id="readme-companion-skills"></a>
+
+## Companion Skills
+
+The VMware Skills family contains 14 MCP servers and the shared Policy library. Choose tools by responsibility: [vmware-skills](https://github.com/vmware-skills).
+
+### Companion Skills
+
+> **Part of the VMware MCP Skills family.** Each skill handles a distinct domain — install only what you need.
+
+| Skill | Scope | Tools | Install |
+|-------|-------|:-----:|---------|
+| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ entry point | VM lifecycle, deployment, guest ops, clusters | 49 | `uv tool install vmware-aiops` |
+| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | Read-only monitoring, alarms, events, VM info | 27 | `uv tool install vmware-monitor` |
+| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | Datastores, iSCSI, vSAN | 11 | `uv tool install vmware-storage` |
+| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX networking: segments, gateways, NAT, IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
+| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW microsegmentation, security groups, Traceflow | 21 | `uv tool install vmware-nsx-security` |
+| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops metrics, alerts, capacity planning | 28 | `uv tool install vmware-aria` |
+
+### Related Projects
+
+| Skill | Scope | Tools | Install |
+|-------|-------|:-----:|---------|
+| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ entry point | VM lifecycle, deployment, guest ops, clusters | 49 | `uv tool install vmware-aiops` |
+| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | Read-only monitoring, alarms, events, VM info | 27 | `uv tool install vmware-monitor` |
+| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | Datastores, iSCSI, vSAN | 11 | `uv tool install vmware-storage` |
+| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX networking: segments, gateways, NAT, IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
+| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW microsegmentation, security groups, Traceflow | 21 | `uv tool install vmware-nsx-security` |
+| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops metrics, alerts, capacity planning | 28 | `uv tool install vmware-aria` |
+
+<!-- usage: remote-and-exposure -->
+
+<a id="readme-reference"></a>
+
+## Reference
+
+Release history: [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
+Read-only self-test with your own model and agent host: [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md).
+
+### Upgrading to 3.0
+
+3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
+`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
+read something, and a `get_` name told agents otherwise. Parameters, annotations, safety and CLI commands
+(`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch (saved vmware-pilot workflows are translated by Pilot ≥ 2.0.0). Deny
+rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-policy ≥ 1.19.0. Details in
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do).
+
+### Upgrading to 2.0
+
+2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` →
+`list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`. The reason is a name
+clash: in the family's 2.0, vmware-aiops and vmware-monitor call their **vSphere** VM snapshot tool `list_vm_snapshots`,
+while these list **Kubernetes VM Service** (vm-operator) objects. **Trap:** an agent prompt, script or saved workflow
+that still calls `list_vm_snapshots` with vmware-aiops or vmware-monitor also loaded now reaches the vSphere tool, not
+this one — update it. A VKS-scoped deny rule naming `list_vm_snapshots` now also matches the aiops/monitor tool
+(vmware-policy ≥ 1.18 matches both names; `vmware-audit policy` lists such rules). Parameters, safety gates and CLI
+commands are unchanged; the full table is in [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first).
+If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
+against both the old and the new name, so one file serves both.
+
+### Architecture
+
+```
+User (Natural Language)
+  ↓
+AI Agent (Claude Code / Goose / Cursor)
+  ↓ reads SKILL.md
+  ↓
+vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
+  │
+  ├─ Layer 1: pyVmomi (/sdk) + vSphere Automation REST (/api)
+  │   Supervisor status, storage policies, Namespace CRUD, VM classes, Harbor
+  │   Two session stores: the SOAP session from SmartConnect, and a separate
+  │     REST session id from POST /api/session (vmware-api-session-id header)
+  │
+  └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
+      TKC CR apply / get / delete (requires a currently served
+        cluster.x-k8s.io/v1beta1 schema; discovery failure stops the operation)
+      Kubeconfig built in-memory from the POST /wcp/login bearer token
+        (a third credential, and no temp file on disk)
+  ↓
+vCenter Server 8.x+ (Workload Management enabled)
+  ↓
+Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
+```
+
+### Version Compatibility
+
+| vSphere / VCF | Support | Notes |
+|---------|---------|-------|
+| 9.0 / 9.1 | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` on the Supervisor endpoint, but its guest TKC API rejects the kubeconfig from this skill with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full Workload Management API surface; run `check_vks_compatibility` and report results. |
+| 8.0+ | Full | Workload Management APIs available |
+| 7.x | Not supported | WCP API surface is different; use vSphere 8.x |
+
+VKS 3.8 introduces vendor-managed chained upgrades and more granular node
+placement ([official announcement](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)).
+This skill's `upgrade_tkc_cluster` still submits one requested Kubernetes version;
+it does not verify or orchestrate the 3.8 upgrade chain or placement policy.
+The new worker-pool summary is a read of the existing Cluster topology, not a
+VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
+
+##### Official Broadcom References
+
+- **SDKs**: <https://developer.broadcom.com/sdks> — VCF Python SDK (unified SDK in VCF 9+)
+- **REST APIs**: <https://developer.broadcom.com/xapis> — vSphere Automation API (Workload Management endpoints)
+- **CLI Tools**: <https://developer.broadcom.com/tools> — kubectl-vsphere, PowerCLI 9.1
+
+<a id="readme-license"></a>
 
 ## License
 
