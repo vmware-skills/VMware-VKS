@@ -1,0 +1,16 @@
+{
+  "name": "vmware-vks",
+  "version": "3.6.0",
+  "description": "MCP Skill + CLI for managing vSphere with Tanzu (VKS) — Supervisor, Namespaces, and TanzuKubernetesCluster lifecycle",
+  "mcpServers": {
+    "vmware-vks": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-vks==3.6.0",
+        "vmware-vks-mcp"
+      ]
+    }
+  }
+}
