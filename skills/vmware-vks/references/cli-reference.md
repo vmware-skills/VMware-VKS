@@ -148,3 +148,17 @@ Apply? [y/N]: y
 ```
 
 The same guided flow applies in MCP: the AI model collects missing params through follow-up questions before generating the YAML and applying.
+
+### ClusterClass and offline schema selection
+
+```bash
+# Offline template only: choose an installed class and verify its compatibility.
+vmware-vks tkc create app -n dev --version '<installed-VKr-version>' \
+  --vm-class best-effort-large --cluster-class '<installed-ClusterClass>' \
+  --cluster-class-namespace vmware-system-vks-public --api-version v1beta2
+# Add --apply only after review. Live API version is discovered, not forced by --api-version.
+```
+
+MCP `create_tkc_cluster` accepts the same class name/namespace. Its default call
+previews with live admission validation; `confirm=True` applies only after the
+existing confirmation and Policy checks. See capabilities for class limitations.

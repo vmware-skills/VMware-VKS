@@ -756,6 +756,8 @@ def create_tkc_cluster(
     storage_class: str = "vsphere-storage",
     confirm: bool = False,
     target: Optional[str] = None,
+    cluster_class: Optional[str] = None,
+    cluster_class_namespace: Optional[str] = None,
 ) -> dict:
     """[WRITE] Create a TanzuKubernetesCluster in a vSphere Namespace.
 
@@ -765,13 +767,14 @@ def create_tkc_cluster(
     confirm=True on your own because the user asked earlier — they have not
     seen the preview yet. confirm=True returns {action: "created", name,
     namespace, status: "creating", yaml, blast_radius} and provisions in the
-    background — poll get_tkc_cluster until phase is running. Refused when the
+    background — poll get_tkc_cluster and inspect its conditions/readiness. Refused when the
     name is taken or the namespace's clusters could not be read. Call
     get_tkc_available_versions for k8s_version and list_vm_classes first.
-    Requires a currently served cluster.x-k8s.io/v1beta1 API; failed discovery
-    or unsupported-only schemas stop before resource access. This preview does
-    not validate the legacy ClusterClass or its variables. Modern ClusterClass
-    selection and v1beta2 are not implemented.
+    Requires a discovered v1beta1 or v1beta2 API. Preview and apply run
+    Supervisor admission with dryRun=All and strict field validation; rejection
+    stops creation. v1beta2 requires an explicit installed cluster_class; use
+    cluster_class_namespace for shared classes. No automatic rebase or variable
+    conversion. vSphere/VCF 9.1 end-to-end deployment is not lab validated.
 
     Args:
         name: Cluster name.
@@ -781,6 +784,8 @@ def create_tkc_cluster(
         control_plane_count: 1 or 3.
         worker_count: Worker nodes (>= 1).
         storage_class: Storage class.
+        cluster_class: Installed ClusterClass; required for v1beta2.
+        cluster_class_namespace: Class namespace, e.g. vmware-system-vks-public.
         confirm: False (default) returns the blast radius and changes nothing. True applies it.
         target: vCenter in config.yaml; omit for the default.
     """
@@ -793,6 +798,7 @@ def create_tkc_cluster(
         radius = _gate.measure_tkc_create(
             si, name, namespace, k8s_version, vm_class,
             control_plane_count, worker_count, storage_class,
+            cluster_class=cluster_class, cluster_class_namespace=cluster_class_namespace,
         )
         if not decision.act:
             return _preview(radius, "create")
@@ -801,6 +807,7 @@ def create_tkc_cluster(
             si, name=name, namespace=namespace, k8s_version=k8s_version,
             vm_class=vm_class, control_plane_count=control_plane_count,
             worker_count=worker_count, storage_class=storage_class, dry_run=False,
+            cluster_class=cluster_class, cluster_class_namespace=cluster_class_namespace,
         )
     except Exception as e:
         if decision.act:

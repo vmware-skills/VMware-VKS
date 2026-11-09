@@ -53,7 +53,7 @@ uv pip install -e .
 | vSphere / VCF | Support | Notes |
 |---------|---------|-------|
 | 8.0 / 8.0U1-U3 | Full | Workload Management APIs available; TKC uses `cluster.x-k8s.io/v1beta1`. |
-| 9.0 / 9.1 (VCF 9) | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` at the Supervisor endpoint; its guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface. Live lifecycle paths require a discovered, served `v1beta1` schema; `v1beta2`-only/unknown schemas stop. CLI YAML dry-runs remain unvalidated legacy ClusterClass templates. Run `check_vks_compatibility` and verify guest access separately. |
+| 9.0 / 9.1 (VCF 9) | ⚠ Partial external 9.1 report | A 9.1 lab confirmed Supervisor `/wcp/login` at the Supervisor endpoint; its guest TKC API rejected this skill's kubeconfig with 401 ([#27](https://github.com/vmware-skills/VMware-VKS/issues/27)). Maintainers have not verified the full API surface. Live lifecycle paths discover served `v1beta1` or `v1beta2`; unknown schemas stop. Modern creation requires an explicit installed ClusterClass and successful admission dry-run. CLI YAML dry-runs remain unvalidated templates. Run `check_vks_compatibility` and verify guest access separately. |
 | 7.x | Not supported | WCP API surface is different; use vSphere 8.x+. |
 
 ## Configuration

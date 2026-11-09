@@ -537,7 +537,7 @@ vmware-vks CLI  ─── or ───  vmware-vks MCP Server (stdio)
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API endpoint
       TKC CR apply / get / delete (requires a currently served
-        cluster.x-k8s.io/v1beta1 schema; discovery failure stops the operation)
+        cluster.x-k8s.io/v1beta1 or v1beta2 schema; discovery failure stops the operation)
       Kubeconfig built in-memory from the POST /wcp/login bearer token
         (a third credential, and no temp file on disk)
   ↓
@@ -572,3 +572,8 @@ VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
 ## License
 
 [MIT](LICENSE)
+
+Cluster API creation supports explicit `cluster_class`/`cluster_class_namespace` across
+served v1beta1 and v1beta2 schemas. MCP preview and apply require Supervisor admission
+dry-run; offline CLI templates remain unvalidated. VCF 9.1 end-to-end deployment is
+not lab verified. See [schema boundaries](skills/vmware-vks/references/capabilities.md#measured-cluster-api-schema-support).

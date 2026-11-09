@@ -517,7 +517,7 @@ vmware-vks CLI  ─── 或 ───  vmware-vks MCP Server（stdio）
   │
   └─ Layer 2: kubernetes client → Supervisor K8s API 端点
       TKC CR apply / get / delete（每次操作要求实际发现服务端提供
-        cluster.x-k8s.io/v1beta1；发现失败即停止，不猜测或缓存回退版本）
+        cluster.x-k8s.io/v1beta1 或 v1beta2；发现失败即停止，不猜测或缓存回退版本）
       Kubeconfig 基于 POST /wcp/login 返回的 bearer token 在内存中构建
         （第三种凭据，同样不落盘）
   ↓
@@ -544,3 +544,8 @@ VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
 ## 许可证
 
 [MIT](LICENSE)
+
+Cluster API 创建支持在实际提供的 v1beta1 / v1beta2 接口中显式指定
+`cluster_class` / `cluster_class_namespace`。MCP 预览和执行均要求 Supervisor
+服务端 dry-run 校验通过；CLI 离线模板仍未验证。VCF 9.1 完整部署尚未经过真机验证。
+详见[接口边界](skills/vmware-vks/references/capabilities.md#measured-cluster-api-schema-support)。

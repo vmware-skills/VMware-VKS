@@ -1,6 +1,6 @@
 """TanzuKubernetesCluster (TKC) lifecycle operations.
 
-Uses the implemented cluster.x-k8s.io/v1beta1 schema only when the
+Uses implemented cluster.x-k8s.io/v1beta1 or v1beta2 schemas only when the
 Supervisor actually serves it. Discovery errors or unsupported schemas
 stop the operation. All cluster operations go through the Supervisor
 K8s API endpoint (Layer 2).
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 from vmware_policy import paginated, sanitize
 
 from vmware_vks.errors import VksApiError, VksError, VksSafetyError, cause_summary
+from vmware_vks.ops.cluster_status import readiness
 
 _log = logging.getLogger("vmware-vks.ops.tkc")
 
@@ -114,13 +115,14 @@ def _resolve_tkc_version(si: ServiceInstance, namespace: str) -> str:
                     "Check the Supervisor discovery response; no version was assumed."
                 )
             served.update(v.version for v in versions)
-        if _TKC_API_VERSION not in served:
+        supported = next((v for v in ("v1beta1", "v1beta2") if v in served), None)
+        if supported is None:
             raise VksApiError(
-                "This skill requires a served cluster.x-k8s.io/v1beta1 API. "
-                "Check the Supervisor's served schemas; v1beta2/v1 are not implemented. "
+                "This skill requires a served cluster.x-k8s.io/v1beta1 or v1beta2 API. "
+                "Check the Supervisor's served schemas; v1 is not implemented. "
                 "No resource operation was attempted."
             )
-        return _TKC_API_VERSION
+        return supported
     except VksError:
         raise
     except k8s.client.exceptions.ApiException as exc:
@@ -152,14 +154,18 @@ def generate_tkc_yaml(
     worker_count: int,
     storage_class: str,
     api_version: str = _TKC_API_VERSION,
+    cluster_class: str | None = None,
+    cluster_class_namespace: str | None = None,
 ) -> str:
     """Generate TKC cluster YAML.
 
-    Offline template only: v1beta1 is the sole implemented schema. Live
-    lifecycle paths additionally require successful Supervisor discovery.
+    Offline template only. Live lifecycle paths require successful discovery
+    and creation admission. v1beta2 requires an explicit ClusterClass.
     """
-    if api_version != _TKC_API_VERSION:
-        raise ValueError("api_version must be v1beta1; other Cluster API schemas are not implemented")
+    if api_version not in ("v1beta1", "v1beta2"):
+        raise ValueError("api_version must be v1beta1 or v1beta2")
+    if api_version == "v1beta2" and not cluster_class:
+        raise ValueError("cluster_class is required for v1beta2; select an installed ClusterClass")
     if worker_count < 1:
         raise ValueError(
             f"worker_count must be >= 1, got {worker_count}. Pass worker_count=1 "
@@ -181,7 +187,7 @@ def generate_tkc_yaml(
                 "services": {"cidrBlocks": ["10.96.0.0/12"]},
             },
             "topology": {
-                "class": "tanzukubernetescluster",
+                "class": cluster_class or "tanzukubernetescluster",
                 "version": k8s_version,
                 "controlPlane": {
                     "replicas": control_plane_count,
@@ -204,6 +210,17 @@ def generate_tkc_yaml(
             },
         },
     }
+    topology = manifest["spec"]["topology"]
+    if api_version == "v1beta2":
+        topology["classRef"] = {"name": topology.pop("class")}
+        if cluster_class_namespace:
+            topology["classRef"]["namespace"] = cluster_class_namespace
+        for nodes in [topology["controlPlane"], *topology["workers"]["machineDeployments"]]:
+            nodes.pop("metadata")
+            nodes.pop("nodeDrainTimeout")
+            nodes["deletion"] = {"nodeDrainTimeoutSeconds": 60}
+    elif cluster_class_namespace:
+        topology["classNamespace"] = cluster_class_namespace
     return yaml.dump(manifest, default_flow_style=False)
 
 
@@ -313,8 +330,8 @@ def get_tkc_cluster(si: ServiceInstance, name: str, namespace: str) -> dict:
             "worker_pools": worker_pools,
             "worker_replica_total": worker_replica_total,
             "conditions": conditions,
-            "infrastructure_ready": status.get("infrastructureReady", False),
-            "control_plane_ready": status.get("controlPlaneReady", False),
+            "infrastructure_ready": readiness(status, "InfrastructureReady", "infrastructureReady"),
+            "control_plane_ready": readiness(status, "ControlPlaneAvailable", "controlPlaneReady"),
         }
     finally:
         api.api_client.close()
@@ -408,6 +425,30 @@ def get_tkc_available_versions(si: ServiceInstance, namespace: str) -> dict:
         api_client.close()
 
 
+def validate_tkc_manifest(si: ServiceInstance, namespace: str, manifest: dict) -> None:
+    """Ask Supervisor admission to validate without persisting a Cluster.
+
+    Fail closed if schema, class, variables, RBAC or dry-run webhooks reject it.
+    No automatic class selection, variable conversion or existing-cluster rebase.
+    """
+    import kubernetes as k8s
+
+    api = _get_custom_objects_api(si, namespace)
+    try:
+        try:
+            api.create_namespaced_custom_object(
+                group=_TKC_GROUP, version=manifest["apiVersion"].split("/")[1],
+                namespace=namespace, plural=_TKC_PLURAL, body=manifest,
+                dry_run="All", field_validation="Strict",
+            )
+        except k8s.client.exceptions.ApiException as exc:
+            raise _translate_api_exception(
+                si, exc, resource=manifest["metadata"]["name"], namespace=namespace
+            ) from exc
+    finally:
+        api.api_client.close()
+
+
 def create_tkc_cluster(
     si: ServiceInstance,
     name: str,
@@ -418,14 +459,18 @@ def create_tkc_cluster(
     worker_count: int = 3,
     storage_class: str = "vsphere-storage",
     dry_run: bool = True,
+    cluster_class: str | None = None,
+    cluster_class_namespace: str | None = None,
+    api_version: str = _TKC_API_VERSION,
 ) -> dict:
     """Create a TKC cluster. dry_run=True returns YAML plan without applying."""
-    version = _resolve_tkc_version(si, namespace) if not dry_run else _TKC_API_VERSION
+    version = _resolve_tkc_version(si, namespace) if not dry_run else api_version
     yaml_str = generate_tkc_yaml(
         name=name, namespace=namespace, k8s_version=k8s_version,
         vm_class=vm_class, control_plane_count=control_plane_count,
         worker_count=worker_count, storage_class=storage_class,
-        api_version=version,
+        api_version=version, cluster_class=cluster_class,
+        cluster_class_namespace=cluster_class_namespace,
     )
 
     if dry_run:
@@ -436,7 +481,7 @@ def create_tkc_cluster(
             "namespace": namespace,
             "yaml": yaml_str,
             "validated": False,
-            "hint": "This legacy v1beta1/ClusterClass template is not validated against "
+            "hint": "This ClusterClass template is not validated against "
                     "a Supervisor. Verify its schema, ClusterClass and variables before "
                     "applying; use the MCP create preview for live API/name checks.",
         }
@@ -444,12 +489,14 @@ def create_tkc_cluster(
     import kubernetes as k8s
 
     manifest = yaml.safe_load(yaml_str)
+    validate_tkc_manifest(si, namespace, manifest)
     api = _get_custom_objects_api(si, namespace)
     try:
         try:
             api.create_namespaced_custom_object(
                 group=_TKC_GROUP, version=version,
                 namespace=namespace, plural=_TKC_PLURAL, body=manifest,
+                field_validation="Strict",
             )
         except k8s.client.exceptions.ApiException as e:
             raise _translate_api_exception(si, e, resource=name, namespace=namespace) from e

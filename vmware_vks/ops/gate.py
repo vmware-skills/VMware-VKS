@@ -291,6 +291,8 @@ def measure_tkc_create(
     control_plane_count: int,
     worker_count: int,
     storage_class: str,
+    cluster_class: str | None = None,
+    cluster_class_namespace: str | None = None,
 ) -> dict[str, Any]:
     """The manifest that would be applied, and whether the name is free."""
     api_version = _tkc._resolve_tkc_version(si, namespace)
@@ -298,6 +300,7 @@ def measure_tkc_create(
         name=name, namespace=namespace, k8s_version=k8s_version, vm_class=vm_class,
         control_plane_count=control_plane_count, worker_count=worker_count,
         storage_class=storage_class, api_version=api_version,
+        cluster_class=cluster_class, cluster_class_namespace=cluster_class_namespace,
     )
     existing, err = _try(
         lambda: [c["name"] for c in _tkc.list_tkc_clusters(si, namespace=namespace)["items"]]
@@ -308,7 +311,15 @@ def measure_tkc_create(
             f"a TKC cluster named '{name}' already exists in namespace '{namespace}'. "
             "Use scale_tkc_cluster or upgrade_tkc_cluster to change it, or pick another name."
         )
+    import yaml
+
+    admission_validated = not blockers and err is None
+    if admission_validated:
+        _tkc.validate_tkc_manifest(si, namespace, yaml.safe_load(manifest))
     return {
+        "admission_validated": admission_validated,
+        "cluster_class": cluster_class or "tanzukubernetescluster",
+        "cluster_class_namespace": cluster_class_namespace or namespace,
         "cluster": name,
         "namespace": namespace,
         "k8s_version": k8s_version,
