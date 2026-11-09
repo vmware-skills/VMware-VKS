@@ -13,6 +13,13 @@
   remains the first pool only. No new write behavior or 3.8 compatibility
   claim is introduced. Real VCF 9.1/VKS 3.8 validation is pending.
 
+## Unreleased — security documentation corrections
+
+Clarify actual capability, credential, local-write and transport boundaries where applicable.
+Pin documented setup/fallback tools and make credential examples owner-only before writing,
+without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
+These edits do not establish a new ClawHub scan verdict.
+
 ## v3.5.0 — vCenter 9.1 Supervisor upgrade advisory report (2026-11-01)
 
 * New read-only `get_supervisor_upgrade_risk` tool and `vmware-vks supervisor upgrade-risk --to 9.1.1` command report the source vCenter version/build, Supervisor inventory, and whether the published 9.1.0/9.1.1 advisory matrix applies. An unreadable inventory or unrecognized source version stays `unknown`.

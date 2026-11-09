@@ -13,6 +13,10 @@ MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor �
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+MCP 默认使用本地 stdio。启用可选 HTTPS 后会打开配置的监听端口，并要求 TLS 与调用者认证；此时属于网络服务。凭据示例先创建仅当前用户可读写的占位文件，拒绝覆盖已有文件，再由用户在本地编辑秘密值。
+
+Skills.sh 示例分别固定安装器 `skills@1.7.6`（需 Node.js >=22.20.0）和仓库 release tag；这不等于锁定传递依赖。
+
 ## 升级到 3.0
 
 3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
@@ -58,7 +62,7 @@ deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 �
 
 ```bash
 # 安装
-uv tool install vmware-vks
+uv tool install vmware-vks==3.6.0
 
 # 配置
 mkdir -p ~/.vmware-vks
@@ -67,8 +71,14 @@ cp config.example.yaml ~/.vmware-vks/config.yaml
 
 # 每个 target 一个密码环境变量，变量名由 config.yaml 里的 target 名派生：
 # target "vcenter01"（config.example.yaml 自带的那个）-> VMWARE_VKS_VCENTER01_PASSWORD
-echo "VMWARE_VKS_VCENTER01_PASSWORD=your_password" > ~/.vmware-vks/.env
-chmod 600 ~/.vmware-vks/.env
+(
+  umask 077
+  set -C  # 拒绝覆盖已有文件；已有 .env 请直接用本地编辑器修改
+  cat > ~/.vmware-vks/.env <<'EOF'
+VMWARE_VKS_VCENTER01_PASSWORD=REPLACE_IN_LOCAL_EDITOR
+EOF
+)
+# 继续前，先用本地编辑器填写 .env；不要在终端命令中输入真实秘密值。
 
 # 验证
 vmware-vks check
@@ -80,6 +90,8 @@ vmware-vks tkc list
 vmware-vks tkc create my-cluster -n dev --version v1.28.4+vmware.1 --vm-class best-effort-large
 vmware-vks tkc create my-cluster -n dev --apply
 ```
+
+模板只写入占位符。创建后用本地编辑器填写密码或令牌；不要把真实凭据粘贴到终端命令、聊天或提交中。若文件已存在，上述命令会拒绝覆盖；直接编辑现有文件并先确认权限为 `600`。
 
 ## 离线 / 气隙环境安装（从源码）
 
@@ -265,7 +277,7 @@ vmware-vks storage -n <命名空间>
 
 ## MCP Server 配置
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks` 后，**一条命令启动 MCP**：
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.0` 后，**一条命令启动 MCP**：
 
 ```bash
 vmware-vks mcp
@@ -290,7 +302,7 @@ vmware-vks mcp
 
 ```bash
 # 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks vmware-vks mcp
+uvx --from vmware-vks==3.6.0 vmware-vks mcp
 
 # 旧 entry point（仍可用，向后兼容）
 vmware-vks-mcp
@@ -313,7 +325,7 @@ vmware-vks-mcp
 | Kubeconfig 内存构建 | 本 skill 自身调用 API 时，Supervisor/TKC kubeconfig（含 Supervisor bearer token）以内存 dict 形式构建并通过 `load_kube_config_from_dict()` 加载 — 不会写入磁盘临时文件（v1.5.18+） |
 | Kubeconfig 属于凭据访问 | `issue_supervisor_kubeconfig` / `issue_tkc_kubeconfig` 返回有效期以小时计的 bearer token：标注 `readOnlyHint: false`（客户端会先询问）、`risk_level: medium`，审计记录中 kubeconfig 被脱敏。仅在用户明确要求时调用；用 `output_path` / `-o` 导出到仅属主可读（0600）的文件 |
 | 审计日志 | 所有写操作记录到 `~/.vmware-vks/audit.log` |
-| stdio 传输 | 无网络监听端口；MCP 通过 stdio 运行 |
+| MCP 传输 | 默认本地 stdio；可选的认证 HTTPS 会打开配置的监听端口 |
 
 ## 故障排查
 
