@@ -1,55 +1,49 @@
 <!-- mcp-name: io.github.vmware-skills/vmware-vks -->
+
 # VMware VKS
 
-要用自己的模型和 Agent 平台进行只读自测，请看 marketplace 根目录的[共享模型适配自测任务](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md)。
+[![PyPI](https://img.shields.io/pypi/v/vmware-vks)](https://pypi.org/project/vmware-vks/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#readme-license)
 
-> **作者**: Wei Zhou, VMware by Broadcom — zhouwei008@gmail.com
-> 本项目由 VMware 工程师维护的社区项目，非 VMware 官方产品。
-> VMware 官方开发者工具请访问 [developer.broadcom.com](https://developer.broadcom.com)。
+[English](README.md) | 中文
 
-[English](README.md) | [中文](README-CN.md)
+维护者: Wei Zhou · [zhouwei008@gmail.com](mailto:zhouwei008@gmail.com)
+
+社区维护的开源项目，非 VMware 或 Broadcom 官方产品。
+
+[概述](#readme-overview) · [快速开始](#readme-quick-start) · [MCP 配置](#readme-mcp-configuration) · [能力与工作流](#readme-capabilities-and-workflows) · [安全与审计](#readme-safety-and-audit) · [故障排查](#readme-troubleshooting) · [配套 Skills](#readme-companion-skills) · [参考资料](#readme-reference) · [许可证](#readme-license)
+
+<a id="readme-overview"></a>
+
+## 概述
+
+默认通过本地 Stdio 运行；请在本机配置所需目标和凭据。
 
 MCP Skill + CLI，用于 VMware vSphere with Tanzu (VKS) 管理 — Supervisor 集群、vSphere 命名空间和 TanzuKubernetesCluster 生命周期。25 个 MCP 工具。
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 MCP 默认使用本地 stdio。启用可选 HTTPS 后会打开配置的监听端口，并要求 TLS 与调用者认证；此时属于网络服务。凭据示例先创建仅当前用户可读写的占位文件，拒绝覆盖已有文件，再由用户在本地编辑秘密值。
 
 Skills.sh 示例分别固定安装器 `skills@1.7.6`（需 Node.js >=22.20.0）和仓库 release tag；这不等于锁定传递依赖。
 
-## 升级到 3.0
+完整的 Agent 指令见 [`skills/vmware-vks/SKILL.md`](skills/vmware-vks/SKILL.md).
 
-3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
-`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
-这个名字让 agent 以为只是读。参数、注解、安全门和 CLI 命令（`vmware-vks kubeconfig supervisor` / `kubeconfig get`）
-都不变；调用旧名字的客户端必须改（已保存的 vmware-pilot 工作流由 Pilot ≥ 2.0.0 自动翻译）。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
-详见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do)。
+<a id="readme-quick-start"></a>
 
-## 升级到 2.0
+## 快速开始
 
-2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_groups` →
-`list_vm_service_groups`、`list_vm_network_interfaces` → `list_vm_service_network_interfaces`。原因是撞名：家族 2.0 里
-vmware-aiops 和 vmware-monitor 把它们的 **vSphere** 虚拟机快照工具叫做 `list_vm_snapshots`，而这三个列的是 **Kubernetes VM
-Service**（vm-operator）对象。**注意：** 如果 agent 提示词、脚本或已保存的工作流还在调用 `list_vm_snapshots`，并且同时加载了
-vmware-aiops 或 vmware-monitor，现在拿到的是 vSphere 那个工具而不是这个——请改名。VKS 范围内针对 `list_vm_snapshots` 的
-deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 同时匹配新旧名；`vmware-audit policy` 会列出这类规则）。
-参数、安全确认门和 CLI 命令都不变；完整对照表见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。
-如果还有 2.0 之前的安装共用这个 `rules.yaml`，请把它的 vmware-policy 也升到 ≥ 1.18.2：它会按新旧两个名字匹配每条规则，一份文件两边都管用。
+需要 Python `>=3.10` 和 `uv`。
 
-## 配套 Skills
+```bash
+uv tool install vmware-vks==3.6.0
+vmware-vks --help
+```
 
-> **VMware MCP Skills 系列。** 每个 Skill 负责一个独立领域 — 按需安装即可。
+目标、凭据和本地数据目录设置见 [setup guide](skills/vmware-vks/references/setup-guide.md).
 
-| Skill | 功能范围 | 工具数 | 安装 |
-|-------|---------|:-----:|------|
-| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ 入口 | VM 生命周期、部署、Guest Ops、集群 | 49 | `uv tool install vmware-aiops` |
-| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | 只读监控、告警、事件、VM 信息 | 27 | `uv tool install vmware-monitor` |
-| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | 数据存储、iSCSI、vSAN | 11 | `uv tool install vmware-storage` |
-| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX 网络：Segment、网关、NAT、IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
-| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW 微分段、安全组、Traceflow | 21 | `uv tool install vmware-nsx-security` |
-| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops 指标、告警、容量规划 | 28 | `uv tool install vmware-aria` |
+<details>
+<summary>安装与配置详情（含离线安装）</summary>
 
-## 前置要求
+### 前置要求
 
 - **Python 3.10+** — `uv tool install` 所需
 - **vSphere 8.0+** — Workload Management（Supervisor）API 要求 vSphere 8.x
@@ -58,7 +52,8 @@ deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 �
 
 配置完成后运行 `vmware-vks check` 验证所有要求是否满足。
 
-## 快速开始
+
+### 快速开始
 
 ```bash
 # 安装
@@ -93,7 +88,8 @@ vmware-vks tkc create my-cluster -n dev --apply
 
 模板只写入占位符。创建后用本地编辑器填写密码或令牌；不要把真实凭据粘贴到终端命令、聊天或提交中。若文件已存在，上述命令会拒绝覆盖；直接编辑现有文件并先确认权限为 `600`。
 
-## 离线 / 气隙环境安装（从源码）
+
+### 离线 / 气隙环境安装（从源码）
 
 本项目采用现代 PEP 517 构建系统（hatchling），因此**没有 `setup.py`** 是设计使然，
 而非缺失文件。若你克隆源码后遇到 `ERROR: File "setup.py" or "setup.cfg" not found
@@ -119,9 +115,86 @@ pip wheel . -w dist        # → dist/*.whl   （或：uv build，仅构建本�
 pip install --no-index --find-links dist vmware-vks
 ```
 
-## 常用工作流
 
-### 部署新 TKC 集群
+</details>
+
+<a id="readme-mcp-configuration"></a>
+
+## MCP 配置
+
+将以下配置复制到 MCP 客户端的本地 Stdio 配置中。客户端需要能找到 `uvx`；首次安装所需包时需要访问包源。
+
+```json
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-vks==3.6.0",
+        "vmware-vks-mcp"
+      ],
+      "env": {
+        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
+      }
+    }
+  }
+}
+```
+
+以下保留预先安装 CLI 的用法及各工具特有的 MCP 选项。
+
+<details>
+<summary>预先安装的 CLI 与其他 MCP 选项</summary>
+
+### MCP Server 配置
+
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.0` 后，**一条命令启动 MCP**：
+
+```bash
+vmware-vks mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "vmware-vks": {
+      "command": "vmware-vks",
+      "args": ["mcp"],
+      "env": {
+        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
+      }
+    }
+  }
+}
+```
+
+<details>
+<summary>备选方案：uvx（不安装）或 legacy 入口</summary>
+
+```bash
+# 不想安装，临时运行（每次需要联网 resolve 依赖）
+uvx --from vmware-vks==3.6.0 vmware-vks mcp
+
+# 旧 entry point（仍可用，向后兼容）
+vmware-vks-mcp
+```
+
+> **公司 TLS 代理网络下？** uvx 可能报 `invalid peer certificate: UnknownIssuer`。
+> 推荐使用上面的 `vmware-vks mcp`（无需联网），或 `export UV_NATIVE_TLS=true`。
+
+</details>
+
+
+</details>
+
+<a id="readme-capabilities-and-workflows"></a>
+
+## 能力与工作流
+
+### 常用工作流
+
+#### 部署新 TKC 集群
 
 1. 检查兼容性 → `vmware-vks check`
 2. 查看可用 K8s 版本 → `vmware-vks tkc versions -n dev`
@@ -129,22 +202,22 @@ pip install --no-index --find-links dist vmware-vks
 4. 创建 TKC 集群 → `vmware-vks tkc create dev-cluster -n dev --version v1.28.4+vmware.1 --control-plane 1 --workers 3 --vm-class best-effort-large --apply`
 5. 获取 kubeconfig（凭据；仅在需要访问集群时）→ `vmware-vks kubeconfig get dev-cluster -n dev -o ./kubeconfig` — 写入仅属主可读的文件，而不是把 token 打印出来
 
-### 扩容工作节点（压测场景）
+#### 扩容工作节点（压测场景）
 
 1. 查看当前状态 → `vmware-vks tkc get dev-cluster -n dev`
 2. 扩容 → `vmware-vks tkc scale dev-cluster -n dev --workers 6`
 3. 监控进度 → `vmware-vks tkc get dev-cluster -n dev`（观察 phase）
 4. 测试结束后缩容
 
-### 命名空间资源管理
+#### 命名空间资源管理
 
 1. 列出命名空间 → `vmware-vks namespace list`
 2. 查看使用情况 → `vmware-vks storage -n dev`
 3. 更新配额 → `vmware-vks namespace update dev --cpu 32000 --memory 65536`
 
-## 工具参考（25 个工具）
+### 工具参考（25 个工具）
 
-### Supervisor
+#### Supervisor
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
@@ -158,7 +231,7 @@ pip install --no-index --find-links dist vmware-vks
 若 Supervisor/VKS 环境在公告范围内，请按 [Broadcom 官方检查与修复说明](https://knowledge.broadcom.com/external/article/455737)
 或 VDT 检查，并在升级前备份 vCenter 和 Supervisor。
 
-### 命名空间
+#### 命名空间
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
@@ -169,7 +242,7 @@ pip install --no-index --find-links dist vmware-vks
 | `delete_namespace` | 删除（含 TKC 保护，存在集群时拒绝） | 写操作 |
 | `list_vm_classes` | TKC 节点规格可用的 VM 类 | 只读 |
 
-### TKC
+#### TKC
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
@@ -185,7 +258,7 @@ pip install --no-index --find-links dist vmware-vks
 副本数时，`worker_replica_total` 才给出合计；自动扩缩容或无法读取的池会使其为 `null`。
 旧字段 `worker_replicas` 为兼容性保留，**只代表第一个池**，不能当作集群总数。
 
-### 访问
+#### 访问
 
 | 工具 | 描述 | 类型 |
 |------|------|------|
@@ -196,7 +269,7 @@ pip install --no-index --find-links dist vmware-vks
 
 **VCF 9.1 TKC 访问：** 一份 9.1 真机报告显示，`issue_tkc_kubeconfig` 将 Supervisor JWT 写入 guest kubeconfig 后，TKC API 返回 401。生成文件不代表 guest 访问已验证；使用前请向 guest API 实测。见 [issue #27](https://github.com/vmware-skills/VMware-VKS/issues/27)。该报告中的 Supervisor 范围 TKC 读取不受影响。
 
-### VM Service（vm-operator）
+#### VM Service（vm-operator）
 
 | 工具 | 说明 | 类型 |
 |------|------|------|
@@ -204,39 +277,13 @@ pip install --no-index --find-links dist vmware-vks
 | `list_vm_service_groups` | Namespace 中的 VirtualMachineGroup 对象及其启动顺序 | 只读 |
 | `list_vm_service_network_interfaces` | 单个 VM Service VirtualMachine 的网卡（多网卡） | 只读 |
 
-### 权限自检
+#### 权限自检
 
 | 工具 | 说明 | 类型 |
 |------|------|------|
 | `get_access_info` | server 使用哪个账号，以及它在根文件夹上是否拥有各工具所需的 vSphere 权限。Kubernetes 调用由命名空间自身的权限决定，此工具不检查 | 只读 |
 
-## 架构
-
-```
-用户（自然语言）
-  ↓
-AI Agent（Claude Code / Goose / Cursor）
-  ↓ 读取 SKILL.md
-  ↓
-vmware-vks CLI  ─── 或 ───  vmware-vks MCP Server（stdio）
-  │
-  ├─ Layer 1: pyVmomi（/sdk）+ vSphere Automation REST（/api）
-  │   Supervisor 状态、存储策略、命名空间 CRUD、VM 类、Harbor
-  │   两套独立会话：SmartConnect 建立的 SOAP 会话，以及 POST /api/session
-  │     单独签发的 REST 会话 ID（放在 vmware-api-session-id 头里）
-  │
-  └─ Layer 2: kubernetes client → Supervisor K8s API 端点
-      TKC CR apply / get / delete（每次操作要求实际发现服务端提供
-        cluster.x-k8s.io/v1beta1；发现失败即停止，不猜测或缓存回退版本）
-      Kubeconfig 基于 POST /wcp/login 返回的 bearer token 在内存中构建
-        （第三种凭据，同样不落盘）
-  ↓
-vCenter Server 8.x+（Workload Management 已启用）
-  ↓
-Supervisor 集群 → vSphere 命名空间 → TanzuKubernetesCluster
-```
-
-## CLI 参考
+### CLI 参考
 
 ```bash
 # 环境检查
@@ -275,45 +322,11 @@ vmware-vks harbor
 vmware-vks storage -n <命名空间>
 ```
 
-## MCP Server 配置
+<a id="readme-safety-and-audit"></a>
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.0` 后，**一条命令启动 MCP**：
+## 安全与审计
 
-```bash
-vmware-vks mcp
-```
-
-```json
-{
-  "mcpServers": {
-    "vmware-vks": {
-      "command": "vmware-vks",
-      "args": ["mcp"],
-      "env": {
-        "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
-      }
-    }
-  }
-}
-```
-
-<details>
-<summary>备选方案：uvx（不安装）或 legacy 入口</summary>
-
-```bash
-# 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks==3.6.0 vmware-vks mcp
-
-# 旧 entry point（仍可用，向后兼容）
-vmware-vks-mcp
-```
-
-> **公司 TLS 代理网络下？** uvx 可能报 `invalid peer certificate: UnknownIssuer`。
-> 推荐使用上面的 `vmware-vks mcp`（无需联网），或 `export UV_NATIVE_TLS=true`。
-
-</details>
-
-## 安全性
+### 安全性
 
 | 特性 | 说明 |
 |------|------|
@@ -327,70 +340,7 @@ vmware-vks-mcp
 | 审计日志 | 所有写操作记录到 `~/.vmware-vks/audit.log` |
 | MCP 传输 | 默认本地 stdio；可选的认证 HTTPS 会打开配置的监听端口 |
 
-## 故障排查
-
-### "VKS not compatible" 错误
-
-必须在 vCenter 中启用 Workload Management。检查：vCenter UI -> Workload Management。需要 vSphere 8.x+ 且持有 Enterprise Plus 或 VCF 许可证。
-
-### 每个命令都报 "session is not authenticated"
-
-密码没错。要么是会话过期（重跑命令即可，会新开会话），要么是账号没有 vSphere 角色，所以 vCenter 看不到它的会话，每个调用都失败。VKS 不会在连接时拒绝这种登录，因为只持有 Supervisor 命名空间权限的账号看起来一样、却能正常工作；错误会出现在第一个需要角色的调用上。在 vCenter 根文件夹上给账号分配一个角色（Read-Only 或更高）：Administration > Access Control > Global Permissions；命名空间和 TKC 操作还需要 Workload Management 权限。
-
-### 所有 REST 工具都返回 401
-
-命名空间、存储策略、Supervisor 状态这些工具走的是 vSphere Automation REST API，
-它认的是 `POST /api/session` 签发的会话 ID，**不是** pyVmomi 的 SOAP 会话 key ——
-后者不是该 API 签发的，所以一律拒绝。遇到 401 会自动重新登录一次；若仍然 401，
-检查中间的代理/网关是否把 `vmware-api-session-id` 头去掉了。账号缺少 Workload
-Management 权限时返回的是 **403**，不是 401。
-
-### 创建命名空间失败，提示 "storage policy not found"
-
-先列出策略：`vmware-vks supervisor storage-policies`，然后将 **Policy ID** 列的值（而非显示名称）作为 `--storage-policy` 传入。
-
-### TKC 集群卡在 "Creating" 阶段
-
-检查 vCenter 中的 Supervisor 事件。常见原因：ESXi 主机资源不足、NSX-T 网络问题、或存储策略在目标数据存储上不可用。
-
-### Kubeconfig 获取失败
-
-运行 vmware-vks 的机器必须能访问 Supervisor API 端点。检查 6443 端口的防火墙规则。
-
-### 扩容操作无效果
-
-扩容前确认集群处于 "Running" 阶段。处于 "Creating" 或 "Updating" 阶段的集群会拒绝扩容操作。
-
-### 删除命名空间被意外拒绝
-
-命名空间删除保护会在内部存在 TKC 集群时阻止删除。请先删除命名空间内的所有 TKC 集群，然后重试。
-
-## 版本兼容性
-
-| vSphere / VCF | 支持状态 | 说明 |
-|---------|---------|------|
-| 9.0 / 9.1 | ⚠ 9.1 外部局部实测 | 一份 9.1 实验室报告确认 Supervisor `/wcp/login` 位于 Supervisor 端点，但该环境的 guest TKC API 对本 skill 生成的 kubeconfig 返回 401（[#27](https://github.com/vmware-skills/VMware-VKS/issues/27)）。维护者尚未验证完整 Workload Management API；请运行 `check_vks_compatibility` 并反馈结果。 |
-| 8.0+ | 完整支持 | Workload Management API 可用 |
-| 7.x | 不支持 | WCP API 接口不同，请使用 vSphere 8.x |
-
-VKS 3.8 增加了官方管理的链式升级和更细的节点放置能力（见[官方发布说明](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)）。
-本 skill 的 `upgrade_tkc_cluster` 仍只提交一个指定的 Kubernetes 版本，尚未验证或编排
-3.8 的升级链及放置策略。新增的节点池摘要读取现有 Cluster 拓扑，不能据此宣称已通过
-VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
-
-## 相关项目
-
-| Skill | 范围 | 工具数 | 安装 |
-|-------|------|:-----:|------|
-| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ 入口 | VM 生命周期、部署、Guest Ops、集群 | 49 | `uv tool install vmware-aiops` |
-| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | 只读监控、告警、事件、VM 信息 | 27 | `uv tool install vmware-monitor` |
-| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | 数据存储、iSCSI、vSAN | 11 | `uv tool install vmware-storage` |
-| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX 网络：Segment、网关、NAT、IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
-| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW 微分段、安全组、Traceflow | 21 | `uv tool install vmware-nsx-security` |
-| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops 指标、告警、容量规划 | 28 | `uv tool install vmware-aria` |
-
-<!-- usage: remote-and-exposure -->
-## 远程访问（HTTPS）与限制工具
+### 远程访问（HTTPS）与限制工具
 
 默认情况下 `vmware-vks mcp` 通过 stdio 服务一个本地客户端，并提供全部工具。以下两个选项可以改变这一点
 （需 vmware-policy ≥ 1.21.0）。
@@ -452,6 +402,148 @@ vmware-vks mcp --expose read --allow-write create_namespace
 这只限制提供给客户端的工具，不是授权；账号本身仍应遵循最小权限。
 
 详见 `skills/vmware-vks/references/setup-guide.md`（"Serving MCP over HTTPS"、"Limiting which tools are offered"）。
+
+<a id="readme-troubleshooting"></a>
+
+## 故障排查
+
+### 故障排查
+
+#### "VKS not compatible" 错误
+
+必须在 vCenter 中启用 Workload Management。检查：vCenter UI -> Workload Management。需要 vSphere 8.x+ 且持有 Enterprise Plus 或 VCF 许可证。
+
+#### 每个命令都报 "session is not authenticated"
+
+密码没错。要么是会话过期（重跑命令即可，会新开会话），要么是账号没有 vSphere 角色，所以 vCenter 看不到它的会话，每个调用都失败。VKS 不会在连接时拒绝这种登录，因为只持有 Supervisor 命名空间权限的账号看起来一样、却能正常工作；错误会出现在第一个需要角色的调用上。在 vCenter 根文件夹上给账号分配一个角色（Read-Only 或更高）：Administration > Access Control > Global Permissions；命名空间和 TKC 操作还需要 Workload Management 权限。
+
+#### 所有 REST 工具都返回 401
+
+命名空间、存储策略、Supervisor 状态这些工具走的是 vSphere Automation REST API，
+它认的是 `POST /api/session` 签发的会话 ID，**不是** pyVmomi 的 SOAP 会话 key ——
+后者不是该 API 签发的，所以一律拒绝。遇到 401 会自动重新登录一次；若仍然 401，
+检查中间的代理/网关是否把 `vmware-api-session-id` 头去掉了。账号缺少 Workload
+Management 权限时返回的是 **403**，不是 401。
+
+#### 创建命名空间失败，提示 "storage policy not found"
+
+先列出策略：`vmware-vks supervisor storage-policies`，然后将 **Policy ID** 列的值（而非显示名称）作为 `--storage-policy` 传入。
+
+#### TKC 集群卡在 "Creating" 阶段
+
+检查 vCenter 中的 Supervisor 事件。常见原因：ESXi 主机资源不足、NSX-T 网络问题、或存储策略在目标数据存储上不可用。
+
+#### Kubeconfig 获取失败
+
+运行 vmware-vks 的机器必须能访问 Supervisor API 端点。检查 6443 端口的防火墙规则。
+
+#### 扩容操作无效果
+
+扩容前确认集群处于 "Running" 阶段。处于 "Creating" 或 "Updating" 阶段的集群会拒绝扩容操作。
+
+#### 删除命名空间被意外拒绝
+
+命名空间删除保护会在内部存在 TKC 集群时阻止删除。请先删除命名空间内的所有 TKC 集群，然后重试。
+
+<a id="readme-companion-skills"></a>
+
+## 配套 Skills
+
+VMware Skills 家族包含 14 个 MCP Server 和共享 Policy 库。按职责选择工具： [vmware-skills](https://github.com/vmware-skills).
+
+### 配套 Skills
+
+> **VMware MCP Skills 系列。** 每个 Skill 负责一个独立领域 — 按需安装即可。
+
+| Skill | 功能范围 | 工具数 | 安装 |
+|-------|---------|:-----:|------|
+| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ 入口 | VM 生命周期、部署、Guest Ops、集群 | 49 | `uv tool install vmware-aiops` |
+| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | 只读监控、告警、事件、VM 信息 | 27 | `uv tool install vmware-monitor` |
+| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | 数据存储、iSCSI、vSAN | 11 | `uv tool install vmware-storage` |
+| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX 网络：Segment、网关、NAT、IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
+| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW 微分段、安全组、Traceflow | 21 | `uv tool install vmware-nsx-security` |
+| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops 指标、告警、容量规划 | 28 | `uv tool install vmware-aria` |
+
+### 相关项目
+
+| Skill | 范围 | 工具数 | 安装 |
+|-------|------|:-----:|------|
+| **[vmware-aiops](https://github.com/vmware-skills/VMware-AIops)** ⭐ 入口 | VM 生命周期、部署、Guest Ops、集群 | 49 | `uv tool install vmware-aiops` |
+| **[vmware-monitor](https://github.com/vmware-skills/VMware-Monitor)** | 只读监控、告警、事件、VM 信息 | 27 | `uv tool install vmware-monitor` |
+| **[vmware-storage](https://github.com/vmware-skills/VMware-Storage)** | 数据存储、iSCSI、vSAN | 11 | `uv tool install vmware-storage` |
+| **[vmware-nsx](https://github.com/vmware-skills/VMware-NSX)** | NSX 网络：Segment、网关、NAT、IPAM | 33 | `uv tool install vmware-nsx-mgmt` |
+| **[vmware-nsx-security](https://github.com/vmware-skills/VMware-NSX-Security)** | DFW 微分段、安全组、Traceflow | 21 | `uv tool install vmware-nsx-security` |
+| **[vmware-aria](https://github.com/vmware-skills/VMware-Aria)** | Aria Ops 指标、告警、容量规划 | 28 | `uv tool install vmware-aria` |
+
+<!-- usage: remote-and-exposure -->
+
+<a id="readme-reference"></a>
+
+## 参考资料
+
+变更记录： [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
+使用自己的模型和 Agent 宿主进行只读自测： [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md).
+
+### 升级到 3.0
+
+3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
+`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
+这个名字让 agent 以为只是读。参数、注解、安全门和 CLI 命令（`vmware-vks kubeconfig supervisor` / `kubeconfig get`）
+都不变；调用旧名字的客户端必须改（已保存的 vmware-pilot 工作流由 Pilot ≥ 2.0.0 自动翻译）。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
+详见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do)。
+
+### 升级到 2.0
+
+2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_groups` →
+`list_vm_service_groups`、`list_vm_network_interfaces` → `list_vm_service_network_interfaces`。原因是撞名：家族 2.0 里
+vmware-aiops 和 vmware-monitor 把它们的 **vSphere** 虚拟机快照工具叫做 `list_vm_snapshots`，而这三个列的是 **Kubernetes VM
+Service**（vm-operator）对象。**注意：** 如果 agent 提示词、脚本或已保存的工作流还在调用 `list_vm_snapshots`，并且同时加载了
+vmware-aiops 或 vmware-monitor，现在拿到的是 vSphere 那个工具而不是这个——请改名。VKS 范围内针对 `list_vm_snapshots` 的
+deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 同时匹配新旧名；`vmware-audit policy` 会列出这类规则）。
+参数、安全确认门和 CLI 命令都不变；完整对照表见 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。
+如果还有 2.0 之前的安装共用这个 `rules.yaml`，请把它的 vmware-policy 也升到 ≥ 1.18.2：它会按新旧两个名字匹配每条规则，一份文件两边都管用。
+
+### 架构
+
+```
+用户（自然语言）
+  ↓
+AI Agent（Claude Code / Goose / Cursor）
+  ↓ 读取 SKILL.md
+  ↓
+vmware-vks CLI  ─── 或 ───  vmware-vks MCP Server（stdio）
+  │
+  ├─ Layer 1: pyVmomi（/sdk）+ vSphere Automation REST（/api）
+  │   Supervisor 状态、存储策略、命名空间 CRUD、VM 类、Harbor
+  │   两套独立会话：SmartConnect 建立的 SOAP 会话，以及 POST /api/session
+  │     单独签发的 REST 会话 ID（放在 vmware-api-session-id 头里）
+  │
+  └─ Layer 2: kubernetes client → Supervisor K8s API 端点
+      TKC CR apply / get / delete（每次操作要求实际发现服务端提供
+        cluster.x-k8s.io/v1beta1；发现失败即停止，不猜测或缓存回退版本）
+      Kubeconfig 基于 POST /wcp/login 返回的 bearer token 在内存中构建
+        （第三种凭据，同样不落盘）
+  ↓
+vCenter Server 8.x+（Workload Management 已启用）
+  ↓
+Supervisor 集群 → vSphere 命名空间 → TanzuKubernetesCluster
+```
+
+### 版本兼容性
+
+| vSphere / VCF | 支持状态 | 说明 |
+|---------|---------|------|
+| 9.0 / 9.1 | ⚠ 9.1 外部局部实测 | 一份 9.1 实验室报告确认 Supervisor `/wcp/login` 位于 Supervisor 端点，但该环境的 guest TKC API 对本 skill 生成的 kubeconfig 返回 401（[#27](https://github.com/vmware-skills/VMware-VKS/issues/27)）。维护者尚未验证完整 Workload Management API；请运行 `check_vks_compatibility` 并反馈结果。 |
+| 8.0+ | 完整支持 | Workload Management API 可用 |
+| 7.x | 不支持 | WCP API 接口不同，请使用 vSphere 8.x |
+
+VKS 3.8 增加了官方管理的链式升级和更细的节点放置能力（见[官方发布说明](https://blogs.vmware.com/cloud-foundation/2026/11/02/vks-3-8-advancing-ai-modern-workloads-private-cloud/)）。
+本 skill 的 `upgrade_tkc_cluster` 仍只提交一个指定的 Kubernetes 版本，尚未验证或编排
+3.8 的升级链及放置策略。新增的节点池摘要读取现有 Cluster 拓扑，不能据此宣称已通过
+VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
+
+<a id="readme-license"></a>
 
 ## 许可证
 
