@@ -129,11 +129,7 @@ pip install --no-index --find-links dist vmware-vks
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": [
-        "--from",
-        "vmware-vks==3.6.0",
-        "vmware-vks-mcp"
-      ],
+      "args": ["--from", "vmware-vks==3.6.0", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
