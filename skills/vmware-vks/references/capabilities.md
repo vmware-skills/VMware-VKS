@@ -69,6 +69,9 @@ clearance or placement support from this read-only summary. See the
 
 ### Measured Cluster API schema support
 
+**Unreleased on main. Published 3.6.1 still supports v1beta1 only. Use the following
+new parameters only with a server built from this implementation.**
+
 Every live cluster operation discovers the served `cluster.x-k8s.io` versions for its
 current session and namespace. The skill uses `v1beta1` when available to preserve
 existing behavior, otherwise `v1beta2`. Unknown-only versions, failed discovery,

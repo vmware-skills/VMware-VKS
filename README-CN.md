@@ -545,6 +545,7 @@ VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
 
 [MIT](LICENSE)
 
+**以下为 main 上尚未发版的实现；已发布的 3.6.1 仍仅支持 v1beta1。**
 Cluster API 创建支持在实际提供的 v1beta1 / v1beta2 接口中显式指定
 `cluster_class` / `cluster_class_namespace`。MCP 预览和执行均要求 Supervisor
 服务端 dry-run 校验通过；CLI 离线模板仍未验证。VCF 9.1 完整部署尚未经过真机验证。

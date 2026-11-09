@@ -573,6 +573,7 @@ VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
 
 [MIT](LICENSE)
 
+**Unreleased on main; the published 3.6.1 package retains v1beta1-only support.**
 Cluster API creation supports explicit `cluster_class`/`cluster_class_namespace` across
 served v1beta1 and v1beta2 schemas. MCP preview and apply require Supervisor admission
 dry-run; offline CLI templates remain unvalidated. VCF 9.1 end-to-end deployment is

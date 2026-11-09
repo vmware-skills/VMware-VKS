@@ -151,6 +151,8 @@ The same guided flow applies in MCP: the AI model collects missing params throug
 
 ### ClusterClass and offline schema selection
 
+Unreleased on main; these new options are not in the published 3.6.1 package.
+
 ```bash
 # Offline template only: choose an installed class and verify its compatibility.
 vmware-vks tkc create app -n dev --version '<installed-VKr-version>' \
