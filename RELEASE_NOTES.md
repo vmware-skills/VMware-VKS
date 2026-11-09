@@ -1,3 +1,16 @@
+## v3.6.1 — Security documentation and Gemini extension packaging
+
+Released 2026-11-09.
+
+Clarify actual capability, credential, local-write and transport boundaries where applicable.
+Pin documented setup/fallback tools and make credential examples owner-only before writing,
+without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
+These edits do not establish a new ClawHub scan verdict.
+
+Add the root Gemini CLI extension manifest and discovery metadata, using the existing canonical skill and exact MCP package version. No duplicate skill entrypoint is introduced.
+
+Runtime infrastructure operations, permissions, TLS defaults and confirmation behavior are unchanged. No new vSphere/VCF 9.x or live product compatibility is claimed. ClawHub skill and bundle verdicts are checked separately after publication; documentation corrections are not a clean-scan claim.
+
 ## v3.6.0 — complete worker-pool evidence and measured API discovery (2026-11-08)
 
 * Update public author/project contact metadata to `zhouwei008@gmail.com`.
@@ -13,12 +26,6 @@
   remains the first pool only. No new write behavior or 3.8 compatibility
   claim is introduced. Real VCF 9.1/VKS 3.8 validation is pending.
 
-## Unreleased — security documentation corrections
-
-Clarify actual capability, credential, local-write and transport boundaries where applicable.
-Pin documented setup/fallback tools and make credential examples owner-only before writing,
-without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
-These edits do not establish a new ClawHub scan verdict.
 
 ## v3.5.0 — vCenter 9.1 Supervisor upgrade advisory report (2026-11-01)
 

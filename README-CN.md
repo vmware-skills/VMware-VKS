@@ -62,7 +62,7 @@ deny 规则现在也会匹配 aiops/monitor 的工具（vmware-policy ≥ 1.18 �
 
 ```bash
 # 安装
-uv tool install vmware-vks==3.6.0
+uv tool install vmware-vks==3.6.1
 
 # 配置
 mkdir -p ~/.vmware-vks
@@ -277,7 +277,7 @@ vmware-vks storage -n <命名空间>
 
 ## MCP Server 配置
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.0` 后，**一条命令启动 MCP**：
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.1` 后，**一条命令启动 MCP**：
 
 ```bash
 vmware-vks mcp
@@ -302,7 +302,7 @@ vmware-vks mcp
 
 ```bash
 # 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks==3.6.0 vmware-vks mcp
+uvx --from vmware-vks==3.6.1 vmware-vks mcp
 
 # 旧 entry point（仍可用，向后兼容）
 vmware-vks-mcp
