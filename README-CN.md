@@ -34,7 +34,7 @@ Skills.sh 示例分别固定安装器 `skills@1.7.6`（需 Node.js >=22.20.0）�
 需要 Python `>=3.10` 和 `uv`。
 
 ```bash
-uv tool install vmware-vks==3.6.0
+uv tool install vmware-vks==3.6.1
 vmware-vks --help
 ```
 
@@ -57,7 +57,7 @@ vmware-vks --help
 
 ```bash
 # 安装
-uv tool install vmware-vks==3.6.0
+uv tool install vmware-vks==3.6.1
 
 # 配置
 mkdir -p ~/.vmware-vks
@@ -129,7 +129,7 @@ pip install --no-index --find-links dist vmware-vks
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": ["--from", "vmware-vks==3.6.0", "vmware-vks-mcp"],
+      "args": ["--from", "vmware-vks==3.6.1", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
@@ -145,7 +145,7 @@ pip install --no-index --find-links dist vmware-vks
 
 ### MCP Server 配置
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.0` 后，**一条命令启动 MCP**：
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.6.1` 后，**一条命令启动 MCP**：
 
 ```bash
 vmware-vks mcp
@@ -170,7 +170,7 @@ vmware-vks mcp
 
 ```bash
 # 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks==3.6.0 vmware-vks mcp
+uvx --from vmware-vks==3.6.1 vmware-vks mcp
 
 # 旧 entry point（仍可用，向后兼容）
 vmware-vks-mcp

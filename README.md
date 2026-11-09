@@ -34,7 +34,7 @@ Full agent instructions: [`skills/vmware-vks/SKILL.md`](skills/vmware-vks/SKILL.
 Requires Python `>=3.10` and `uv`.
 
 ```bash
-uv tool install vmware-vks==3.6.0
+uv tool install vmware-vks==3.6.1
 vmware-vks --help
 ```
 
@@ -57,7 +57,7 @@ Run `vmware-vks check` after setup to verify all requirements are met.
 
 ```bash
 # Install
-uv tool install vmware-vks==3.6.0
+uv tool install vmware-vks==3.6.1
 
 # Configure
 mkdir -p ~/.vmware-vks
@@ -131,7 +131,7 @@ Copy this configuration into your MCP client's local stdio settings. The client 
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": ["--from", "vmware-vks==3.6.0", "vmware-vks-mcp"],
+      "args": ["--from", "vmware-vks==3.6.1", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
@@ -147,7 +147,7 @@ The following sections retain preinstalled CLI alternatives and product-specific
 
 ### MCP Server
 
-**After `uv tool install vmware-vks==3.6.0`, start the MCP server with one command** (v1.5.15+):
+**After `uv tool install vmware-vks==3.6.1`, start the MCP server with one command** (v1.5.15+):
 
 ```bash
 # Recommended — single command, no network re-resolve
@@ -180,7 +180,7 @@ Add to your AI agent's MCP config:
 
 ```bash
 # Run without installing (requires PyPI access each launch)
-uvx --from vmware-vks==3.6.0 vmware-vks mcp
+uvx --from vmware-vks==3.6.1 vmware-vks mcp
 
 # Legacy entry point (still works, kept for backward compatibility)
 vmware-vks-mcp
