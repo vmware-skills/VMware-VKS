@@ -205,7 +205,9 @@ def _fs_writers_called_by(tool_name: str) -> list[str]:
     import inspect as _inspect
 
     fn = _inspect.unwrap(getattr(srv, tool_name))
-    tree = ast.parse(_inspect.getsource(fn))
+    import textwrap
+
+    tree = ast.parse(textwrap.dedent(_inspect.getsource(fn)))
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):

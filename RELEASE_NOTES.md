@@ -6,6 +6,14 @@ Released 2026-11-09.
 * Allow explicit ClusterClass name/namespace in CLI and MCP creation; require it on v1beta2. MCP preview and apply validate with Supervisor admission dry-run and strict fields before persistence. Offline CLI templates remain unvalidated; no automatic rebase or variable conversion is performed.
 * Read current readiness conditions without turning absent/Unknown evidence into a healthy result. No end-to-end VCF 9.1 or guest kubeconfig compatibility is claimed.
 
+## v3.7.1 (2026-11-10) — Split MCP and cluster CLI registration
+
+Separate Supervisor, cluster and access MCP registrations and cluster CLI callbacks while preserving the original shared runtime, aliases, tool metadata/order, Policy, audit and confirmation gates. Keep modern ClusterClass/CAPI behavior unchanged. Source guard checks cover extracted callbacks without lowering coverage floors.
+
+Validation: existing suites, complete CLI/MCP surface comparison, structural guard checks and security scanning; exact results are retained in the private release record. Live 9.1/Supervisor, PAIS, NSX and Horizon validation is not established by synthetic tests.
+
+中文：本轮修复和重构范围见上述说明；保留既有 Policy、审计及确认门。合成测试不代表 9.1/Supervisor、PAIS、NSX 或 Horizon 正向真机验证。
+
 ## v3.6.1 — Security documentation and Gemini extension packaging
 
 Released 2026-11-09.

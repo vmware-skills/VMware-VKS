@@ -11,13 +11,13 @@ Each operation is classified by autonomy level per the Enterprise Harness Engine
 | **L1** | Read-only, raw data | Always auto-run | `check_vks_compatibility`, `get_supervisor_status`, `list_supervisor_storage_policies`, `list_namespaces`, `get_namespace`, TKC list/get, `get_harbor_info`, `list_namespace_storage_usage` |
 | **L2** | Read + analysis / recommendation | Always auto-run | namespace quota analysis, TKC health correlation, storage policy compatibility checks |
 | **Credential** | Returns live access material (bearer token) | **Never auto-run** — only on explicit user request; write to a file, report the path | `issue_supervisor_kubeconfig`, `issue_tkc_kubeconfig` |
-| **L3** | Single write — user must approve | Only after explicit confirmation; destructive ops require double-confirm + `--dry-run` | `create_namespace`, `update_namespace`, `delete_namespace`, `create_tkc_cluster`, `upgrade_tkc_cluster`, `scale_tkc_cluster`, `delete_tkc_cluster` |
+| **L3** | Single write — user must approve | Authorized request; MCP preview gates and CLI confirmation are separate (see Notes) | `create_namespace`, `update_namespace`, `delete_namespace`, `create_tkc_cluster`, `upgrade_tkc_cluster`, `scale_tkc_cluster`, `delete_tkc_cluster` |
 | **L4** | Multi-step plan / apply workflow | Plan generation auto; apply gated by user approval | *(roadmap — TKC fleet upgrades, multi-namespace bootstrapping plans)* |
 | **L5** | Auto-remediation from learned pattern | Pattern library only; requires `risk:low` + `reversible:true` + `repeatable:true` | *(roadmap — candidates: stuck TKC reconciliation, namespace quota bumps)* |
 
 **Notes**:
-- L1/L2 tools are always safe for agents to call without confirmation. Credential tools are not: they are annotated `readOnlyHint: false`, so an MCP client asks before running them.
-- L3 tools always pass through the `@vmware_tool` decorator: connection check → policy check → audit log → double-confirm.
+- L1/L2 are infrastructure reads under the configured account; Policy, RBAC and audit still apply. Read access may reveal sensitive inventory. Credential-returning tools are separate and require an explicit authorized request. Their `readOnlyHint: false` annotation is a client hint; it does not enforce a prompt or independent human approval.
+- L3 tools always pass through the `@vmware_tool` decorator: Policy and audit apply to every call. MCP `create_namespace`, `delete_namespace`, `create_tkc_cluster` and `delete_tkc_cluster` preview until `confirm=true`; namespace update, scale and upgrade act on their first authorized invocation. CLI destructive commands separately double-confirm.
 - Kubeconfig retrieval is credential access. The kubeconfig embeds a Supervisor bearer token (JWT from `/wcp/login`) that acts as the configured vCenter account until it expires — typically hours, not tied to the vmware-vks process. Both tools are `readOnlyHint: false`, `risk_level: medium`, and `sensitive_result=True` (the audit row records the call; the returned kubeconfig is redacted). Always pass `output_path` (MCP) / `-o <path>` (CLI): the file is created owner-only (0600), including when it replaces an existing file, and a symlink target is refused. `output_path` truncates the named file, so `~/.kube/config` would be replaced.
 
 ## 1. Supervisor Layer (Read-Only)
