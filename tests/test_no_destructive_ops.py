@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 DESTRUCTIVE_CLI_COMMANDS: list[tuple[str, str]] = [
     ("vmware_vks/cli.py", "namespace_delete"),
-    ("vmware_vks/cli.py", "tkc_delete"),
+    ("vmware_vks/_cli_clusters.py", "tkc_delete"),
 ]
 
 

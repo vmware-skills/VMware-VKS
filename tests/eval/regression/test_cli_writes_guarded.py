@@ -41,7 +41,7 @@ def _cli_files() -> list[pathlib.Path]:
         return files
     cli_file = _PKG / "cli.py"
     assert cli_file.is_file(), f"no CLI at {cli_dir}/ or {cli_file} — scan would be vacuous"
-    return [cli_file]
+    return sorted(_PKG.glob("*cli*.py"))
 
 
 def _tools_dir() -> pathlib.Path:
@@ -94,6 +94,10 @@ def _ops_calls(node: ast.AST, func_map: dict[str, str], mods: set[str]) -> set[s
         if not isinstance(c, ast.Call):
             continue
         f = c.func
+        if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == "runtime":
+            f = ast.copy_location(ast.Name(id=f.attr, ctx=ast.Load()), f)
+        elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Attribute) and isinstance(f.value.value, ast.Name) and f.value.value.id == "runtime":
+            f = ast.copy_location(ast.Attribute(value=ast.Name(id=f.value.attr, ctx=ast.Load()), attr=f.attr, ctx=ast.Load()), f)
         if isinstance(f, ast.Name) and f.id in func_map:
             out.add(func_map[f.id])
         elif (
@@ -267,3 +271,26 @@ def test_high_blast_radius_commands_are_derived_and_guarded():
             f"{must} is no longer derived as a write command — the readOnlyHint→"
             f"ops→command derivation stopped resolving it"
         )
+
+
+def _registered_cli_callbacks():
+    from types import SimpleNamespace
+    from vmware_vks.cli import app
+
+    found = {}
+    def walk(group):
+        for command in group.registered_commands:
+            if command.callback is not None:
+                callback = command.callback
+                assert callback.__name__ not in found or found[callback.__name__] is callback
+                found[callback.__name__] = callback
+        for child in group.registered_groups:
+            walk(child.typer_instance)
+    walk(app)
+    assert found, "no actual registered callbacks — metadata check would be vacuous"
+    return SimpleNamespace(**found)
+
+
+def test_runtime_ops_references_are_not_lost():
+    tree = ast.parse("def write():\n runtime._op()\n runtime.ops.remove()\n")
+    assert _ops_calls(tree, {"_op": "destroy"}, {"ops"}) == {"destroy", "remove"}

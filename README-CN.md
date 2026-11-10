@@ -34,7 +34,7 @@ Skills.sh 示例分别固定安装器 `skills@1.7.6`（需 Node.js >=22.20.0）�
 需要 Python `>=3.10` 和 `uv`。
 
 ```bash
-uv tool install vmware-vks==3.7.0
+uv tool install vmware-vks==3.7.1
 vmware-vks --help
 ```
 
@@ -57,7 +57,7 @@ vmware-vks --help
 
 ```bash
 # 安装
-uv tool install vmware-vks==3.7.0
+uv tool install vmware-vks==3.7.1
 
 # 配置
 mkdir -p ~/.vmware-vks
@@ -129,7 +129,7 @@ pip install --no-index --find-links dist vmware-vks
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": ["--from", "vmware-vks==3.7.0", "vmware-vks-mcp"],
+      "args": ["--from", "vmware-vks==3.7.1", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
@@ -145,7 +145,7 @@ pip install --no-index --find-links dist vmware-vks
 
 ### MCP Server 配置
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.7.0` 后，**一条命令启动 MCP**：
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.7.1` 后，**一条命令启动 MCP**：
 
 ```bash
 vmware-vks mcp
@@ -170,7 +170,7 @@ vmware-vks mcp
 
 ```bash
 # 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks==3.7.0 vmware-vks mcp
+uvx --from vmware-vks==3.7.1 vmware-vks mcp
 
 # 旧 entry point（仍可用，向后兼容）
 vmware-vks-mcp
@@ -550,3 +550,6 @@ Cluster API 创建支持在实际提供的 v1beta1 / v1beta2 接口中显式指�
 `cluster_class` / `cluster_class_namespace`。MCP 预览和执行均要求 Supervisor
 服务端 dry-run 校验通过；CLI 离线模板仍未验证。VCF 9.1 完整部署尚未经过真机验证。
 详见[接口边界](skills/vmware-vks/references/capabilities.md#measured-cluster-api-schema-support)。
+
+MCP 安全标注是客户端提示，不是强制弹窗，也不能证明独立的人类审批。应以工具
+实际的预览/确认契约及既有 Policy/RBAC 为准；只读库存也可能包含敏感信息。
