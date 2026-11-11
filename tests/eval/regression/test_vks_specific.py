@@ -210,7 +210,8 @@ def test_supervisor_status_version_degrades_with_hint():
     def fake_get(si_arg, path):
         if path == "/vcenter/namespace-management/clusters/domain-c8":
             return _CLUSTER_INFO
-        raise RuntimeError("REST GET failed (404)")
+        from vmware_vks.errors import VksApiError
+        raise VksApiError("REST GET failed", status_code=404)
 
     with patch("vmware_vks.ops.supervisor._rest_get", side_effect=fake_get):
         result = get_supervisor_status(si, "domain-c8")

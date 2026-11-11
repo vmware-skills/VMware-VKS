@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import socket
 import ssl
 import time
@@ -247,26 +248,36 @@ def check_vks_compatibility(si: ServiceInstance) -> dict:
 def get_supervisor_status(si: ServiceInstance, cluster_id: str) -> dict:
     """Get Supervisor Cluster status for a given compute cluster MoRef ID.
 
-    Clusters.Info has no Kubernetes version field — the version comes from
-    ``GET /api/vcenter/namespace-management/software/clusters/{cluster}``
-    (field ``current_version``). That second call degrades gracefully:
-    on failure, kubernetes_version is None and a kubernetes_version_hint
-    explains why.
+    Preserve cluster health/configuration reads. On 9.1+, map the compute
+    cluster through Supervisor summaries/topology before reading its upgrades
+    resource. Earlier releases retain software/clusters. Missing or denied
+    version evidence stays None with a hint; 9.1 never falls back to the
+    deprecated software/clusters endpoint.
     """
     data = _rest_get(si, f"/vcenter/namespace-management/clusters/{cluster_id}")
     try:
-        software = _rest_get(
-            si, f"/vcenter/namespace-management/software/clusters/{cluster_id}"
-        )
-        k8s_version = (
-            software.get("current_version") if isinstance(software, dict) else None
-        )
+        version = getattr(si.content.about, "version", None)
+        match = re.match(r"^(\d+)\.(\d+)", version) if isinstance(version, str) else None
+        modern = bool(match and tuple(map(int, match.groups())) >= (9, 1))
+        if modern:
+            from vmware_vks.ops._supervisor_version import read_current_version
+            k8s_version = sanitize(read_current_version(si, cluster_id, _rest_get), 160)
+        else:
+            software = _rest_get(
+                si, f"/vcenter/namespace-management/software/clusters/{cluster_id}"
+            )
+            k8s_version = (
+                software.get("current_version") if isinstance(software, dict) else None
+            )
         version_hint = None
-    except Exception as e:  # graceful degradation — status fields still useful
+    except Exception as exc:  # graceful degradation — status fields still useful
         k8s_version = None
+        status = exc.status_code if isinstance(exc, VksApiError) else None
+        safe_status = f" (HTTP {status})" if type(status) is int and 400 <= status <= 599 else ""
         version_hint = (
-            f"Could not read Kubernetes version from the software endpoint: {e}. "
-            "Verify Workload Management is fully configured on this cluster."
+            f"Could not establish the current Kubernetes version{safe_status}. Verify Workload "
+            "Management and Supervisor topology access; vCenter 9.1 version reads "
+            "also require Namespaces.Upgrade. No legacy privilege fallback was used on 9.1."
         )
 
     result = {

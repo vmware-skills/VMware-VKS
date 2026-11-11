@@ -1,3 +1,9 @@
+## v3.7.2 (2026-11-11) — Read 9.1 Supervisor version through the supported upgrades API
+
+On vCenter 9.1+, resolve a compute cluster through Supervisor summaries and topology, then read its version from software/supervisors/upgrades. Do not substitute a compute MoRef for a Supervisor ID or fall back through the retired software/clusters endpoint. Missing/ambiguous/denied evidence remains unknown. Existing cluster health reads and pre-9.1 behavior are retained. Supervisor lookup is bounded to 20 entries; positive 9.1 appliance validation remains unavailable.
+
+Validation: focused before-fix reproductions and repository regression suites; synthetic API contracts do not establish a positive 9.1/PAIS/Horizon appliance result.
+
 ## v3.7.0 — ClusterClass selection and discovered v1beta2 schema adaptation
 
 Released 2026-11-09.

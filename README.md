@@ -34,7 +34,7 @@ Full agent instructions: [`skills/vmware-vks/SKILL.md`](skills/vmware-vks/SKILL.
 Requires Python `>=3.10` and `uv`.
 
 ```bash
-uv tool install vmware-vks==3.7.1
+uv tool install vmware-vks==3.7.2
 vmware-vks --help
 ```
 
@@ -57,7 +57,7 @@ Run `vmware-vks check` after setup to verify all requirements are met.
 
 ```bash
 # Install
-uv tool install vmware-vks==3.7.1
+uv tool install vmware-vks==3.7.2
 
 # Configure
 mkdir -p ~/.vmware-vks
@@ -131,7 +131,7 @@ Copy this configuration into your MCP client's local stdio settings. The client 
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": ["--from", "vmware-vks==3.7.1", "vmware-vks-mcp"],
+      "args": ["--from", "vmware-vks==3.7.2", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
@@ -147,7 +147,7 @@ The following sections retain preinstalled CLI alternatives and product-specific
 
 ### MCP Server
 
-**After `uv tool install vmware-vks==3.7.1`, start the MCP server with one command** (v1.5.15+):
+**After `uv tool install vmware-vks==3.7.2`, start the MCP server with one command** (v1.5.15+):
 
 ```bash
 # Recommended — single command, no network re-resolve
@@ -180,7 +180,7 @@ Add to your AI agent's MCP config:
 
 ```bash
 # Run without installing (requires PyPI access each launch)
-uvx --from vmware-vks==3.7.1 vmware-vks mcp
+uvx --from vmware-vks==3.7.2 vmware-vks mcp
 
 # Legacy entry point (still works, kept for backward compatibility)
 vmware-vks-mcp
@@ -568,6 +568,8 @@ VCF 9.1/VKS 3.8 compatibility claim. Live 9.1/3.8 validation is pending.
 - **CLI Tools**: <https://developer.broadcom.com/tools> — kubectl-vsphere, PowerCLI 9.1
 
 <a id="readme-license"></a>
+
+On vCenter 9.1+, optional Supervisor version reads resolve the Supervisor through summaries/topology and use the supported upgrades GET. They require Namespaces.Manage and Namespaces.Upgrade; denied or ambiguous evidence stays unknown. Discovery is bounded to 20 Supervisors. Base health reads still use the existing cluster endpoint; this is not complete retirement of all deprecated cluster APIs or positive 9.1 validation.
 
 ## License
 

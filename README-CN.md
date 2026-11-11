@@ -34,7 +34,7 @@ Skills.sh 示例分别固定安装器 `skills@1.7.6`（需 Node.js >=22.20.0）�
 需要 Python `>=3.10` 和 `uv`。
 
 ```bash
-uv tool install vmware-vks==3.7.1
+uv tool install vmware-vks==3.7.2
 vmware-vks --help
 ```
 
@@ -57,7 +57,7 @@ vmware-vks --help
 
 ```bash
 # 安装
-uv tool install vmware-vks==3.7.1
+uv tool install vmware-vks==3.7.2
 
 # 配置
 mkdir -p ~/.vmware-vks
@@ -129,7 +129,7 @@ pip install --no-index --find-links dist vmware-vks
   "mcpServers": {
     "vmware-vks": {
       "command": "uvx",
-      "args": ["--from", "vmware-vks==3.7.1", "vmware-vks-mcp"],
+      "args": ["--from", "vmware-vks==3.7.2", "vmware-vks-mcp"],
       "env": {
         "VMWARE_VKS_CONFIG": "~/.vmware-vks/config.yaml"
       }
@@ -145,7 +145,7 @@ pip install --no-index --find-links dist vmware-vks
 
 ### MCP Server 配置
 
-**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.7.1` 后，**一条命令启动 MCP**：
+**v1.5.15+ 推荐方式**：完成 `uv tool install vmware-vks==3.7.2` 后，**一条命令启动 MCP**：
 
 ```bash
 vmware-vks mcp
@@ -170,7 +170,7 @@ vmware-vks mcp
 
 ```bash
 # 不想安装，临时运行（每次需要联网 resolve 依赖）
-uvx --from vmware-vks==3.7.1 vmware-vks mcp
+uvx --from vmware-vks==3.7.2 vmware-vks mcp
 
 # 旧 entry point（仍可用，向后兼容）
 vmware-vks-mcp
@@ -540,6 +540,8 @@ VKS 3.8 增加了官方管理的链式升级和更细的节点放置能力（见
 VCF 9.1/VKS 3.8 兼容性验证；真实 9.1/3.8 验证仍待完成。
 
 <a id="readme-license"></a>
+
+vCenter 9.1 的可选 Supervisor 版本读取先通过 summaries/topology 解析真实 Supervisor，再调用受支持的 upgrades GET。需要 Namespaces.Manage 与 Namespaces.Upgrade；权限不足或映射含糊时保持未知，发现范围上限为 20 个 Supervisor。基础健康字段仍沿用现有 cluster 接口，不代表已移除全部弃用接口或完成 9.1 真机验证。
 
 ## 许可证
 
