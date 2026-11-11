@@ -87,6 +87,9 @@ def register_tools(mcp, runtime):
         kubernetes_version_hint if unavailable), and network_provider. Run
         check_vks_compatibility first for cluster IDs; use this to confirm a
         Supervisor is healthy before create_namespace or create_tkc_cluster.
+        On vCenter 9.1+, optional version lookup requires Namespaces.Manage for
+        Supervisor topology and Namespaces.Upgrade for version evidence. Missing
+        access leaves the version unknown; it does not grant or bypass RBAC.
 
         Args:
             cluster_id: Compute cluster MoRef, e.g. 'domain-c1' (wcp_clusters
