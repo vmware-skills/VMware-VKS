@@ -501,8 +501,8 @@ Read-only self-test with your own model and agent host: [model-fit self-test](ht
 
 ### Upgrading to 3.0
 
-3.0 renames the two kubeconfig tools: `get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
-`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
+3.0 renames the two kubeconfig tools: `issue_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`,
+`issue_tkc_kubeconfig` → `issue_tkc_kubeconfig`. They issue a credential (a Supervisor bearer token) rather than
 read something, and a `get_` name told agents otherwise. Parameters, annotations, safety and CLI commands
 (`vmware-vks kubeconfig supervisor` / `kubeconfig get`) are unchanged; callers of the old names must switch (saved vmware-pilot workflows are translated by Pilot ≥ 2.0.0). Deny
 rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-policy ≥ 1.19.0. Details in
@@ -510,8 +510,8 @@ rules in `~/.vmware/rules.yaml` naming the old names keep working with vmware-po
 
 ### Upgrading to 2.0
 
-2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_groups` →
-`list_vm_service_groups`, `list_vm_network_interfaces` → `list_vm_service_network_interfaces`. The reason is a name
+2.0 renames the three VM Service tools: `list_vm_snapshots` → `list_vm_service_snapshots`, `list_vm_service_groups` →
+`list_vm_service_groups`, `list_vm_service_network_interfaces` → `list_vm_service_network_interfaces`. The reason is a name
 clash: in the family's 2.0, vmware-aiops and vmware-monitor call their **vSphere** VM snapshot tool `list_vm_snapshots`,
 while these list **Kubernetes VM Service** (vm-operator) objects. **Trap:** an agent prompt, script or saved workflow
 that still calls `list_vm_snapshots` with vmware-aiops or vmware-monitor also loaded now reaches the vSphere tool, not

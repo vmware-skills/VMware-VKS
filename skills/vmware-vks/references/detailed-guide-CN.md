@@ -484,16 +484,16 @@ VMware Skills 家族包含 14 个 MCP Server 和共享 Policy 库。按职责选
 
 ### 升级到 3.0
 
-3.0 改了两个 kubeconfig 工具的名字：`get_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
-`get_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
+3.0 改了两个 kubeconfig 工具的名字：`issue_supervisor_kubeconfig` → `issue_supervisor_kubeconfig`、
+`issue_tkc_kubeconfig` → `issue_tkc_kubeconfig`。它们签发的是凭据（Supervisor bearer token），不是读取数据，而 `get_`
 这个名字让 agent 以为只是读。参数、注解、安全门和 CLI 命令（`vmware-vks kubeconfig supervisor` / `kubeconfig get`）
 都不变；调用旧名字的客户端必须改（已保存的 vmware-pilot 工作流由 Pilot ≥ 2.0.0 自动翻译）。`~/.vmware/rules.yaml` 里写旧名字的 deny 规则，在 vmware-policy ≥ 1.19.0 下照样生效。
 详见 [RELEASE_NOTES.md](../../../RELEASE_NOTES.md#v300--kubeconfig-tools-are-named-for-what-they-do)。
 
 ### 升级到 2.0
 
-2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_groups` →
-`list_vm_service_groups`、`list_vm_network_interfaces` → `list_vm_service_network_interfaces`。原因是撞名：家族 2.0 里
+2.0 改了三个 VM Service 工具的名字：`list_vm_snapshots` → `list_vm_service_snapshots`、`list_vm_service_groups` →
+`list_vm_service_groups`、`list_vm_service_network_interfaces` → `list_vm_service_network_interfaces`。原因是撞名：家族 2.0 里
 vmware-aiops 和 vmware-monitor 把它们的 **vSphere** 虚拟机快照工具叫做 `list_vm_snapshots`，而这三个列的是 **Kubernetes VM
 Service**（vm-operator）对象。**注意：** 如果 agent 提示词、脚本或已保存的工作流还在调用 `list_vm_snapshots`，并且同时加载了
 vmware-aiops 或 vmware-monitor，现在拿到的是 vSphere 那个工具而不是这个——请改名。VKS 范围内针对 `list_vm_snapshots` 的
