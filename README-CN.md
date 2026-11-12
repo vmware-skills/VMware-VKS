@@ -2,6 +2,8 @@
 
 # VMware-VKS
 
+<a id="readme-overview"></a>
+
 基于实际发现的 API 处理 Supervisor 与 VKS Kubernetes 生命周期。
 
 [English](README.md) · 简体中文
@@ -12,11 +14,15 @@
 
 使用合成数据的示意动画，非实时录屏。[观看家族 AI 配音介绍（约 2 分钟）](https://github.com/vmware-skills/marketplace/blob/main/assets/demos/vmware-skills-zh.mp4)
 
+<a id="readme-capabilities-and-workflows"></a>
+
 ## 能解决什么问题？
 
 - 检查命名空间、VM Class 与存储策略。
 - 在受支持的目标使用显式 ClusterClass 与服务端校验。
 - 展示条件状态与发现缺口，避免猜测。
+
+<a id="readme-quick-start"></a>
 
 ## 快速开始
 
@@ -31,9 +37,13 @@ vmware-vks --help
 
 Claude Code 及其他宿主安装方式见[家族门户](https://github.com/vmware-skills/marketplace/blob/main/README-CN.md)。
 
+<a id="readme-safety-and-audit"></a>
+
 ## 使用边界
 
 包含生命周期写操作及 kubeconfig 导出。API/GVK 支持取决于目标；包可下载不代表已有 9.1/Supervisor 正向真机验证。
+
+<a id="readme-mcp-configuration"></a> <a id="readme-troubleshooting"></a> <a id="readme-reference"></a>
 
 ## 详细文档
 
@@ -41,8 +51,13 @@ Claude Code 及其他宿主安装方式见[家族门户](https://github.com/vmwa
 - [CLI 用法](skills/vmware-vks/references/cli-reference.md)
 - [Agent 使用约束](skills/vmware-vks/references/agent-guardrails.md)
 - [详细用法与架构](skills/vmware-vks/references/detailed-guide-CN.md)
+- [MCP 启动配置](.mcp.json)
 - [唯一技能指令正本](skills/vmware-vks/SKILL.md)
 
+<a id="readme-companion-skills"></a>
+
 属于 [VMware Skills 家族](https://github.com/vmware-skills/marketplace/blob/main/README-CN.md)：15 个 skill、14 个 MCP server 与一个共享 Policy 库。如果对你有用，欢迎 Star 家族门户。
+
+<a id="readme-license"></a>
 
 [问题与反馈](https://github.com/vmware-skills/VMware-VKS/issues) · [MIT](LICENSE)

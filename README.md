@@ -2,6 +2,8 @@
 
 # VMware-VKS
 
+<a id="readme-overview"></a>
+
 Work with Supervisor and VKS Kubernetes lifecycle using discovered APIs.
 
 English · [简体中文](README-CN.md)
@@ -12,11 +14,15 @@ Community-maintained · MIT · Not an official VMware/Broadcom product.
 
 Synthetic-data animation, not a live recording. [Watch the AI-narrated family introduction (~2 min)](https://github.com/vmware-skills/marketplace/blob/main/assets/demos/vmware-skills-en.mp4)
 
+<a id="readme-capabilities-and-workflows"></a>
+
 ## Why use it?
 
 - Inspect namespaces, VM classes and storage policies.
 - Use explicit ClusterClass and server validation where supported.
 - Expose conditions and discovery gaps instead of guessing.
+
+<a id="readme-quick-start"></a>
 
 ## Get started
 
@@ -31,9 +37,13 @@ Requires uv and Python >=3.10. Configure targets and credentials locally before 
 
 For Claude Code and other host installation paths, see the [family portal](https://github.com/vmware-skills/marketplace).
 
+<a id="readme-safety-and-audit"></a>
+
 ## Know the boundaries
 
 Includes lifecycle writes and kubeconfig export. API/GVK support is target-specific; package availability is not a claim of positive 9.1/Supervisor live validation.
+
+<a id="readme-mcp-configuration"></a> <a id="readme-troubleshooting"></a> <a id="readme-reference"></a>
 
 ## Go deeper
 
@@ -41,8 +51,13 @@ Includes lifecycle writes and kubeconfig export. API/GVK support is target-speci
 - [CLI reference](skills/vmware-vks/references/cli-reference.md)
 - [Agent guardrails](skills/vmware-vks/references/agent-guardrails.md)
 - [Detailed usage and architecture](skills/vmware-vks/references/detailed-guide.md)
+- [MCP launch configuration](.mcp.json)
 - [Canonical skill instructions](skills/vmware-vks/SKILL.md)
 
+<a id="readme-companion-skills"></a>
+
 Part of [VMware Skills](https://github.com/vmware-skills/marketplace): 15 skills, 14 MCP servers and one shared Policy library. If it helps your work, star the family portal.
+
+<a id="readme-license"></a>
 
 [Issues and feedback](https://github.com/vmware-skills/VMware-VKS/issues) · [MIT](LICENSE)
