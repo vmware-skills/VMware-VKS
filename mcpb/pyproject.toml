@@ -1,0 +1,6 @@
+[project]
+name = "vmware-vks-mcpb"
+version = "3.7.2"
+description = "Claude Desktop extension shim that runs the published vmware-vks MCP server"
+requires-python = ">=3.10"
+dependencies = ["vmware-vks==3.7.2"]

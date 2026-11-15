@@ -35,6 +35,8 @@ vmware-vks --help
 
 需要 uv 与 Python >=3.10。远程查询前，在本地配置目标与凭据。[配置指南](https://github.com/vmware-skills/VMware-VKS/blob/main/skills/vmware-vks/references/setup-guide.md)。
 
+完成本地配置后可一键安装：[Claude Desktop 扩展（.mcpb）](https://github.com/vmware-skills/VMware-VKS/releases/download/v3.7.2/vmware-vks-3.7.2.mcpb) · [在 VS Code 中安装](https://insiders.vscode.dev/redirect/mcp/install?name=vmware-vks&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22vmware-vks%3D%3D3.7.2%22%2C%22vmware-vks-mcp%22%5D%7D)。两者运行同一个固定的 3.7.2 版本。桌面扩展默认只提供只读工具，需要写操作时把“Tools to offer”改为 `all`。
+
 Agent 宿主安装见本模块的[配置指南](https://github.com/vmware-skills/VMware-VKS/blob/main/skills/vmware-vks/references/setup-guide.md)，以及 [Cursor、Codex、Gemini CLI、Cline 与本地模型示例](https://github.com/vmware-skills/marketplace/blob/main/docs/agent-hosts-CN.md)。WorkBuddy 用户可在 [SkillHub](https://skillhub.cn) 搜索 `vmware-vks` 安装技能，并按 [WorkBuddy 说明](https://github.com/vmware-skills/marketplace/blob/main/docs/agent-hosts-CN.md#workbuddy) 注册 MCP。
 
 选模型可用[共享模型自测流程](https://github.com/vmware-skills/marketplace/blob/main/model-fit/RUNNER-CN.md)：统一任务、复核质量与安全，再按任务组选择最小已测通过配置；不代表生产质量保证。
