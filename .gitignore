@@ -12,3 +12,7 @@ build/
 .ruff_cache/
 .mcpregistry_*
 .DS_Store
+
+# Design and planning documents stay out of the public repo and the sdist.
+docs/plans/
+design/
